@@ -15,11 +15,13 @@
 
 static struct pw_main_loop *mainloop = NULL;
 static struct pw_filter *filter = NULL;
-static void *inport = NULL, *outport = NULL;
+//static void *inport = NULL, *outport = NULL;
+static DSPModuleProcessFunctionPrototype *modfunc_process;
+static float **inbuffers = NULL, **outbuffers = NULL;
+static void **inports = NULL, **outports = NULL;
+static unsigned short inportscount = 0, outportscount = 0;
 
-static void quitsignal(void *userdata, int signum)
-{ putchar('\n'); pw_main_loop_quit(mainloop); }
-
+#if 0
 static inline float clampf(float in, float min, float max)
 {
     if (in > max) return max;
@@ -33,9 +35,17 @@ static inline float signf(float in)
     if (in < 0) return -1;
     return 0;
 }
+#endif
 
 static void procdsp(void *userdata, struct spa_io_position *position)
 {
+    for (unsigned short i = 0; i < inportscount; i++) inbuffers[i] = pw_filter_get_dsp_buffer(inports[i], position->clock.duration);
+    for (unsigned short i = 0; i < outportscount; i++) outbuffers[i] = pw_filter_get_dsp_buffer(outports[i], position->clock.duration);
+
+    modfunc_process((const float * const *)inbuffers, (float * const *)outbuffers, position->clock.duration);
+
+    #if 0
+
     uint32_t count = position->clock.duration;
     const float *in = pw_filter_get_dsp_buffer(inport, count);
     float *out = pw_filter_get_dsp_buffer(outport, count);
@@ -50,6 +60,7 @@ static void procdsp(void *userdata, struct spa_io_position *position)
         float val = clampf(in[i] + 0.5 * sgn, -1, 1) * 0.1;
         out[i] = val;
     }
+    #endif
 }
 
 static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_state state, const char *error)
@@ -82,17 +93,15 @@ static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_stat
     }
 }
 
-static DSPModuleProcessFunctionPrototype *modfunc_process;
-static float **inbuffers = NULL, **outbuffers = NULL;
-static void **inports = NULL, **outports = NULL;
-static unsigned short inportscount = 0, outportscount = 0;
-
 static const struct pw_filter_events filterevents =
 {
     PW_VERSION_FILTER_EVENTS,
     .process = procdsp,
     .state_changed = chstatedsp
 };
+
+static void quitsignal(void *userdata, int signum)
+{ putchar('\n'); pw_main_loop_quit(mainloop); }
 
 int main(int argc, char *argv[])
 {
@@ -151,8 +160,7 @@ int main(int argc, char *argv[])
     if (!(mainloop = pw_main_loop_new(NULL))) goto errorquit_oncreatemainloop;
     struct pw_loop *loop = pw_main_loop_get_loop(mainloop);
 
-    if (!pw_loop_add_signal(loop, SIGINT, quitsignal, NULL)) goto errorquit_aftercreatemainloop;
-    if (!pw_loop_add_signal(loop, SIGTERM, quitsignal, NULL)) goto errorquit_aftercreatemainloop;
+    if (!(pw_loop_add_signal(loop, SIGINT, quitsignal, NULL) && pw_loop_add_signal(loop, SIGTERM, quitsignal, NULL))) goto errorquit_aftercreatemainloop;
 
     struct pw_properties *props = pw_properties_new(PW_KEY_MEDIA_TYPE, "Audio", PW_KEY_MEDIA_CATEGORY, "Filter", PW_KEY_MEDIA_ROLE, "DSP", NULL);
     if (!props) goto errorquit_aftercreatemainloop;
