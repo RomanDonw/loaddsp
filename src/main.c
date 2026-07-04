@@ -14,83 +14,13 @@
 #include "dspmodule.h"
 
 static struct pw_main_loop *mainloop = NULL;
-//static void *inport = NULL, *outport = NULL;
 static DSPModuleProcessFunctionPrototype *modfunc_process;
 static float **inbuffers = NULL, **outbuffers = NULL;
 static void **inports = NULL, **outports = NULL;
 static unsigned short inportscount = 0, outportscount = 0;
 
-#if 0
-static inline float clampf(float in, float min, float max)
-{
-    if (in > max) return max;
-    if (in < min) return min;
-    return in;
-}
-
-static inline float signf(float in)
-{
-    if (in > 0) return 1;
-    if (in < 0) return -1;
-    return 0;
-}
-#endif
-
-static void procdsp(void *userdata, struct spa_io_position *position)
-{
-    for (unsigned short i = 0; i < inportscount; i++) inbuffers[i] = pw_filter_get_dsp_buffer(inports[i], position->clock.duration);
-    for (unsigned short i = 0; i < outportscount; i++) outbuffers[i] = pw_filter_get_dsp_buffer(outports[i], position->clock.duration);
-
-    modfunc_process((const float * const *)inbuffers, (float * const *)outbuffers, position->clock.duration);
-
-    #if 0
-
-    uint32_t count = position->clock.duration;
-    const float *in = pw_filter_get_dsp_buffer(inport, count);
-    float *out = pw_filter_get_dsp_buffer(outport, count);
-
-    if (!out) return;
-    if (!in)
-    { memset(out, 0, sizeof(float) * count); return; }
-
-    for (uint32_t i = 0; i < count; i++)
-    {
-        float sgn = signf(in[i]);
-        float val = clampf(in[i] + 0.5 * sgn, -1, 1) * 0.1;
-        out[i] = val;
-    }
-    #endif
-}
-
-static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_state state, const char *error)
-{
-    printf("state changed to ");
-    switch (state)
-    {
-        case PW_FILTER_STATE_ERROR:
-            puts("error");
-            break;
-
-        case PW_FILTER_STATE_UNCONNECTED:
-            puts("unconnected");
-            break;
-
-        case PW_FILTER_STATE_CONNECTING:
-            puts("connecting");
-            break;
-
-        case PW_FILTER_STATE_PAUSED:
-            puts("paused");
-            break;
-        
-        case PW_FILTER_STATE_STREAMING:
-            puts("streaming");
-            break;
-        
-        default:
-            puts("(unknown)");
-    }
-}
+static void procdsp(void *userdata, struct spa_io_position *position);
+static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_state state, const char *error);
 
 static const struct pw_filter_events filterevents =
 {
@@ -210,9 +140,46 @@ int main(int argc, char *argv[])
         free(outbuffers);
         free(inports);
         free(inbuffers);
-    //errorquit_afterinitmodule:
         modfunc_cleanup();
     errorquit_afteropenmodule:
         dlclose(module);
     return exitcode;
+}
+
+static void procdsp(void *userdata, struct spa_io_position *position)
+{
+    for (unsigned short i = 0; i < inportscount; i++) inbuffers[i] = pw_filter_get_dsp_buffer(inports[i], position->clock.duration);
+    for (unsigned short i = 0; i < outportscount; i++) outbuffers[i] = pw_filter_get_dsp_buffer(outports[i], position->clock.duration);
+
+    modfunc_process((const float * const *)inbuffers, (float * const *)outbuffers, position->clock.duration);
+}
+
+static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_state state, const char *error)
+{
+    printf("state changed to ");
+    switch (state)
+    {
+        case PW_FILTER_STATE_ERROR:
+            puts("error");
+            break;
+
+        case PW_FILTER_STATE_UNCONNECTED:
+            puts("unconnected");
+            break;
+
+        case PW_FILTER_STATE_CONNECTING:
+            puts("connecting");
+            break;
+
+        case PW_FILTER_STATE_PAUSED:
+            puts("paused");
+            break;
+        
+        case PW_FILTER_STATE_STREAMING:
+            puts("streaming");
+            break;
+        
+        default:
+            puts("(unknown)");
+    }
 }
