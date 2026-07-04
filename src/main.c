@@ -57,11 +57,11 @@ int main(int argc, char *argv[])
     if (!modfunc_process) { fprintf(stderr, "dlsym(\"dspmodule_process\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
 
     // ===============================================================
-    
+
     const char *modname = "";
     {
-        unsigned short ret = modfunc_startup(&modname, &inportscount, &outportscount, argc - 1, argv + sizeof(char *));
-        if (ret) { fprintf(stderr, "module internal initialization error"); exitcode = ret; goto errorquit_afteropenmodule; }
+        unsigned short ret = modfunc_startup(&modname, &inportscount, &outportscount, argc - 1, &argv[1]);
+        if (ret) { fputs("module internal initialization error\n", stderr); exitcode = ret; goto errorquit_afteropenmodule; }
     }
 
     // ===============================================================
@@ -156,30 +156,31 @@ static void procdsp(void *userdata, struct spa_io_position *position)
 
 static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_state state, const char *error)
 {
-    printf("state changed to ");
+    printf("(state changed to '");
     switch (state)
     {
         case PW_FILTER_STATE_ERROR:
-            puts("error");
+            printf("error");
             break;
 
         case PW_FILTER_STATE_UNCONNECTED:
-            puts("unconnected");
+            printf("unconnected");
             break;
 
         case PW_FILTER_STATE_CONNECTING:
-            puts("connecting");
+            printf("connecting");
             break;
 
         case PW_FILTER_STATE_PAUSED:
-            puts("paused");
+            printf("paused");
             break;
         
         case PW_FILTER_STATE_STREAMING:
-            puts("streaming");
+            printf("streaming");
             break;
         
         default:
-            puts("(unknown)");
+            printf("(unknown)");
     }
+    puts("')");
 }

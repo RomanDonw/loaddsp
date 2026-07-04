@@ -32,3 +32,6 @@ install(DIRECTORY "include/" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 add_library(dspmod0 SHARED "testmodules/0.c")
 target_include_directories(dspmod0 PRIVATE "${CMAKE_SOURCE_DIR}/include")
+
+add_library(dspmod1 SHARED "testmodules/1.c")
+target_include_directories(dspmod1 PRIVATE "${CMAKE_SOURCE_DIR}/include")
