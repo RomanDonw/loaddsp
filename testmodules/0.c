@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-static const char *modname = "test module";
+static const char *modname = "distortion effect";
 
 static inline float clampf(float in, float min, float max)
 {
@@ -31,8 +31,7 @@ unsigned short dspmodule_process(const float * const inbuffers[], float * const 
     const float *in = inbuffers[0];
     float *out = outbuffers[0];
     if (!out) return 0;
-    if (!in)
-    { memset(out, 0, sizeof(float) * samplescount); return 0; }
+    if (!in) { memset(out, 0, sizeof(float) * samplescount); return 0; }
 
     for (unsigned long i = 0; i < samplescount; i++)
     {

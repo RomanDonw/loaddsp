@@ -32,6 +32,8 @@ static const struct pw_filter_events filterevents =
 static void quitsignal(void *userdata, int signum)
 { putchar('\n'); pw_main_loop_quit(mainloop); }
 
+static int exitcode = -1;
+
 int main(int argc, char *argv[])
 {
     if (argc < 2)
@@ -44,8 +46,6 @@ int main(int argc, char *argv[])
 
     void *module = dlopen(argv[1], RTLD_LAZY);
     if (!module) { fprintf(stderr, "dlopen(): %s\n", dlerror()); return -1; }
-
-    int exitcode = -1;
 
     DSPModuleStartupFunctionPrototype *modfunc_startup = dlsym(module, "dspmodule_startup");
     if (!modfunc_startup) { fprintf(stderr, "dlsym(\"dspmodule_startup\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
@@ -125,10 +125,9 @@ int main(int argc, char *argv[])
 
     if (pw_filter_connect(filter, 0, NULL, 0)) { fputs("error connecting filter.", stderr); goto errorquit_aftercreatefilter; }
 
+    exitcode = 0;
     pw_main_loop_run(mainloop);
-
-    quit:
-        exitcode = 0;
+    
     errorquit_aftercreatefilter:
         pw_filter_destroy(filter);
     errorquit_aftercreatemainloop:
@@ -151,7 +150,8 @@ static void procdsp(void *userdata, struct spa_io_position *position)
     for (unsigned short i = 0; i < inportscount; i++) inbuffers[i] = pw_filter_get_dsp_buffer(inports[i], position->clock.duration);
     for (unsigned short i = 0; i < outportscount; i++) outbuffers[i] = pw_filter_get_dsp_buffer(outports[i], position->clock.duration);
 
-    modfunc_process((const float * const *)inbuffers, (float * const *)outbuffers, position->clock.duration);
+    unsigned short ret = modfunc_process((const float * const *)inbuffers, (float * const *)outbuffers, position->clock.duration);
+    if (!ret) { exitcode = ret; pw_main_loop_quit(mainloop); }
 }
 
 static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_state state, const char *error)
