@@ -151,7 +151,7 @@ static void procdsp(void *userdata, struct spa_io_position *position)
     for (unsigned short i = 0; i < outportscount; i++) outbuffers[i] = pw_filter_get_dsp_buffer(outports[i], position->clock.duration);
 
     unsigned short ret = modfunc_process((const float * const *)inbuffers, (float * const *)outbuffers, position->clock.duration);
-    if (!ret) { exitcode = ret; pw_main_loop_quit(mainloop); }
+    if (ret) { exitcode = ret; pw_main_loop_quit(mainloop); }
 }
 
 static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_state state, const char *error)
