@@ -14,7 +14,6 @@
 #include "dspmodule.h"
 
 static struct pw_main_loop *mainloop = NULL;
-static struct pw_filter *filter = NULL;
 //static void *inport = NULL, *outport = NULL;
 static DSPModuleProcessFunctionPrototype *modfunc_process;
 static float **inbuffers = NULL, **outbuffers = NULL;
@@ -164,28 +163,35 @@ int main(int argc, char *argv[])
 
     struct pw_properties *props = pw_properties_new(PW_KEY_MEDIA_TYPE, "Audio", PW_KEY_MEDIA_CATEGORY, "Filter", PW_KEY_MEDIA_ROLE, "DSP", NULL);
     if (!props) goto errorquit_aftercreatemainloop;
-    filter = pw_filter_new_simple(loop, modname, props, &filterevents, NULL);
-    pw_properties_free(props);
+    struct pw_filter *filter = pw_filter_new_simple(loop, modname, props, &filterevents, NULL);
     if (!filter) goto errorquit_aftercreatemainloop;
 
+    // ===============================================================
+
     void *port;
-    if (!(props = pw_properties_new(PW_KEY_FORMAT_DSP, "32 bit float mono audio", PW_KEY_PORT_NAME, "input", NULL))) goto errorquit_aftercreatefilter;
     for (unsigned short i = 0; i < inportscount; i++)
     {
+        if (!(props = pw_properties_new(PW_KEY_FORMAT_DSP, "32 bit float mono audio", PW_KEY_PORT_NAME, "input", NULL)))
+        { fputs("error creating input port properties", stderr); goto errorquit_aftercreatefilter; }
+
         if (!(port = pw_filter_add_port(filter, PW_DIRECTION_INPUT, PW_FILTER_PORT_FLAG_MAP_BUFFERS, 0, props, NULL, 0)))
-        { pw_properties_free(props); goto errorquit_aftercreatefilter; }
+        { fputs("error adding input port", stderr); goto errorquit_aftercreatefilter; }
+
         inports[i] = port;
     }
-    pw_properties_free(props);
 
-    if (!(props = pw_properties_new(PW_KEY_FORMAT_DSP, "32 bit float mono audio", PW_KEY_PORT_NAME, "output", NULL))) goto errorquit_aftercreatefilter;
     for (unsigned short i = 0; i < outportscount; i++)
     {
+        if (!(props = pw_properties_new(PW_KEY_FORMAT_DSP, "32 bit float mono audio", PW_KEY_PORT_NAME, "output", NULL)))
+        { fputs("error creating output port properties", stderr); goto errorquit_aftercreatefilter; }
+
         if (!(port = pw_filter_add_port(filter, PW_DIRECTION_OUTPUT, PW_FILTER_PORT_FLAG_MAP_BUFFERS, 0, props, NULL, 0)))
-        { pw_properties_free(props); goto errorquit_aftercreatefilter; }
+        { fputs("error adding output port", stderr); goto errorquit_aftercreatefilter; }
+
         outports[i] = port;
     }
-    pw_properties_free(props);
+
+    // ===============================================================
 
     if (pw_filter_connect(filter, 0, NULL, 0)) { fputs("error connecting filter.", stderr); goto errorquit_aftercreatefilter; }
 

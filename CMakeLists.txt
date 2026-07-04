@@ -29,3 +29,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::PipeWire)
 install(DIRECTORY "include/" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # =============================================
+
+add_library(dspmod0 SHARED "testmodules/0.c")
+target_include_directories(dspmod0 PRIVATE "${CMAKE_SOURCE_DIR}/include")
