@@ -3,13 +3,14 @@
 #include <string.h>
 #include <stdio.h>
 
+static unsigned short ioportpairs = 0;
 static float clippingmodifier = 0.5, volumemodifier = 0.1;
 
 unsigned short dspmodule_startup(const char **name, unsigned short *inportscount, unsigned short *outportscount, int argc, char * const argv[])
 {
     {
         int p;
-        while ((p = getopt(argc, argv, "c:v:")) != -1)
+        while ((p = getopt(argc, argv, "c:v:p:")) != -1)
         {
             switch (p)
             {
@@ -20,30 +21,35 @@ unsigned short dspmodule_startup(const char **name, unsigned short *inportscount
                 case 'v':
                     if (sscanf(optarg, "%f", &volumemodifier) < 1) { puts("error parsing option -v"); return 1; }
                     break;
+
+                case 'p':
+                    if (sscanf(optarg, "%hu", &ioportpairs) < 1) { puts("error parsing option -p"); return 1; }
+                    break;
             }
         }
     }
 
-    printf("clipping modifier: %f\nvolume modifier: %f\n", clippingmodifier, volumemodifier);
+    if (!ioportpairs) { puts("specify at least one I/O ports pair through -p parameter"); return 1; }
+    if (clippingmodifier < 0) { puts("clipping modifier (-c parameter) cant be less than zero"); return 1; }
+
+    printf("I/O ports pairs: %hu\nclipping modifier: %f\nvolume modifier: %f\n", ioportpairs, clippingmodifier, volumemodifier);
 
     *name = "distortion effect";
-    *inportscount = 1;
-    *outportscount = 1;
+    *inportscount = ioportpairs;
+    *outportscount = ioportpairs;
     return 0;
 }
 
 unsigned short dspmodule_process(const float * const inbuffers[], float * const outbuffers[], unsigned long samplescount)
 {
-    const float *in = inbuffers[0];
-    float *out = outbuffers[0];
-    if (!out) return 0;
-    if (!in) { memset(out, 0, sizeof(float) * samplescount); return 0; }
-
-    for (unsigned long i = 0; i < samplescount; i++)
+    for (unsigned short ch = 0; ch < ioportpairs; ch++)
     {
-        float sgn = signf(in[i]);
-        float val = clampf(in[i] + clippingmodifier * sgn, -1, 1) * volumemodifier;
-        out[i] = val;
+        const float *in = inbuffers[ch];
+        float *out = outbuffers[ch];
+        if (!out) continue;
+        if (!in) { memset(out, 0, sizeof(float) * samplescount); continue; }
+
+        for (unsigned long i = 0; i < samplescount; i++) out[i] = clampf(in[i] + clippingmodifier * signf(in[i]), -1, 1) * volumemodifier;
     }
 
     return 0;
