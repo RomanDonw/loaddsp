@@ -38,3 +38,4 @@ endmacro()
 
 test(dspmod0 0.c)
 test(dspmod1 1.c)
+test(dspmod2 2.c)
