@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <getopt.h>
 
 static unsigned short ioportpairs = 0;
 static float clippingmodifier = 0.5, volumemodifier = 0.1;
@@ -40,16 +41,16 @@ unsigned short dspmodule_startup(const char **name, unsigned short *inportscount
     return 0;
 }
 
-unsigned short dspmodule_process(const float * const inbuffers[], float * const outbuffers[], unsigned long samplescount)
+unsigned short dspmodule_process(const float * const inbuffers[], float * const outbuffers[], unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime)
 {
     for (unsigned short ch = 0; ch < ioportpairs; ch++)
     {
         const float *in = inbuffers[ch];
         float *out = outbuffers[ch];
         if (!out) continue;
-        if (!in) { memset(out, 0, sizeof(float) * samplescount); continue; }
+        if (!in) { memset(out, 0, sizeof(float) * duration); continue; }
 
-        for (unsigned long i = 0; i < samplescount; i++) out[i] = clampf(in[i] + clippingmodifier * signf(in[i]), -1, 1) * volumemodifier;
+        for (unsigned long i = 0; i < duration; i++) out[i] = clampf(in[i] + clippingmodifier * signf(in[i]), -1, 1) * volumemodifier;
     }
 
     return 0;

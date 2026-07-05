@@ -5,18 +5,22 @@
 #include <getopt.h>
 
 static unsigned short ioportpairs = 0;
-static float modifier = 0;
+static float amplitudemodifier = 0, volumemodifier = 1;
 
 unsigned short dspmodule_startup(const char **name, unsigned short *inportscount, unsigned short *outportscount, int argc, char * const argv[])
 {
     {
         int p;
-        while ((p = getopt(argc, argv, "m:p:")) != -1)
+        while ((p = getopt(argc, argv, "a:p:v:")) != -1)
         {
             switch (p)
             {
-                case 'm':
-                    if (sscanf(optarg, "%f", &modifier) < 1) { puts("error parsing option -m"); return 1; }
+                case 'a':
+                    if (sscanf(optarg, "%f", &amplitudemodifier) < 1) { puts("error parsing option -a"); return 1; }
+                    break;
+
+                case 'v':
+                    if (sscanf(optarg, "%f", &volumemodifier) < 1) { puts("error parsing option -v"); return 1; }
                     break;
 
                 case 'p':
@@ -27,15 +31,15 @@ unsigned short dspmodule_startup(const char **name, unsigned short *inportscount
     }
 
     if (!ioportpairs) { puts("specify at least one I/O ports pair through -p parameter"); return 1; }
-    printf("I/O ports pairs: %hu\nmodifier: %f\n", ioportpairs, modifier);
+    printf("I/O ports pairs: %hu\namplitude modifier: %f\nvolume modifier: %f\n", ioportpairs, amplitudemodifier, volumemodifier);
 
-    *name = "amplitude modifier";
+    *name = "amplitude/volume modifier";
     *inportscount = ioportpairs;
     *outportscount = ioportpairs;
     return 0;
 }
 
-unsigned short dspmodule_process(const float * const inbuffers[], float * const outbuffers[], unsigned long samplescount)
+unsigned short dspmodule_process(const float * const inbuffers[], float * const outbuffers[], unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime)
 {
     for (unsigned char ch = 0; ch < ioportpairs; ch++)
     {
@@ -43,12 +47,12 @@ unsigned short dspmodule_process(const float * const inbuffers[], float * const 
         float *out = outbuffers[ch];
 
         if (!out) continue;
-        if (!in) { memset(out, 0, sizeof(float) * samplescount); continue; }
+        if (!in) { memset(out, 0, sizeof(float) * duration); continue; }
         
-        for (unsigned long i = 0; i < samplescount; i++)
+        for (unsigned long i = 0; i < duration; i++)
         {
-            if (modifier < 0 && absf(in[i]) < absf(modifier)) out[i] = 0;
-            else out[i] = in[i] + modifier * signf(in[i]);
+            if (amplitudemodifier < 0 && absf(in[i]) < absf(amplitudemodifier)) out[i] = 0;
+            else out[i] = (in[i] + amplitudemodifier * signf(in[i])) * volumemodifier;
         }
     }
 
