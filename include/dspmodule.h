@@ -27,4 +27,11 @@ static inline float signf(float in)
 
 #define absf(in) (((float)in) < 0 ? -((float)in) : ((float)in))
 
+static inline float adjf(float in, float adj) // adjunctf.
+{
+    if (!adj) return in;
+    if (adj < 0 && absf(in) < absf(adj)) return 0;
+    return in + adj * signf(in);
+}
+
 #endif

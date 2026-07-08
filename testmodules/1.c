@@ -49,11 +49,7 @@ unsigned short dspmodule_process(const float * const inbuffers[], float * const 
         if (!out) continue;
         if (!in) { memset(out, 0, sizeof(float) * duration); continue; }
         
-        for (unsigned long i = 0; i < duration; i++)
-        {
-            if (amplitudemodifier < 0 && absf(in[i]) < absf(amplitudemodifier)) out[i] = 0;
-            else out[i] = (in[i] + amplitudemodifier * signf(in[i])) * volumemodifier;
-        }
+        for (unsigned long i = 0; i < duration; i++) out[i] = adjf(in[i], amplitudemodifier) * volumemodifier;
     }
 
     return 0;
