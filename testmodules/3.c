@@ -12,7 +12,7 @@ unsigned short dspmodule_startup(const char **name, unsigned short *inportscount
 {
     {
         int p;
-        while ((p = getopt(argc, argv, "f:m:M:p:")) != -1)
+        while ((p = getopt(argc, argv, "f:m:M:")) != -1)
         {
             switch (p)
             {
