@@ -54,7 +54,7 @@ unsigned short dspmodule_startup(const char **name, unsigned short *inportscount
 
     printf("I/O ports pairs: %hu\nincutthreshold: %f\ninamod: %f\ninvmod: %f\nminval: %f\nmaxval: %f\noutamod: %f\noutvmod: %f\n", ioportpairs, incutthreshold, inamod, invmod, minval, maxval, outamod, outvmod);
 
-    *name = "completed distortion effect";
+    *name = "complete distortion effect";
     *inportscount = ioportpairs;
     *outportscount = ioportpairs;
     return 0;
