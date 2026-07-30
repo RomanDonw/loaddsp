@@ -6,18 +6,19 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 static float ampmod = 0, volmod = 0.1;
-
-static int8_t *infiledata;
+static void *infiledata;
 static size_t infilesize;
+static bool useu8 = false;
 
 unsigned short dspmodule_startup(const char **name, unsigned short *inportscount, unsigned short *outportscount, int argc, char * const argv[])
 {
     char *infilepath = NULL;
     {
         int p;
-        while ((p = getopt(argc, argv, "a:v:f:")) != -1)
+        while ((p = getopt(argc, argv, "a:v:f:u")) != -1)
         {
             switch (p)
             {
@@ -31,6 +32,10 @@ unsigned short dspmodule_startup(const char **name, unsigned short *inportscount
 
                 case 'f':
                     infilepath = optarg;
+                    break;
+
+                case 'u':
+                    useu8 = true;
                     break;
             }
         }
@@ -58,8 +63,8 @@ unsigned short dspmodule_startup(const char **name, unsigned short *inportscount
 
     fclose(f);
 
-    printf("in file: \"%s\"\nampmod: %f\nvolmod: %f\n", infilepath, ampmod, volmod);
-    *name = "looped PCM signed 8-bit mono file player";
+    printf("in file: \"%s\"\nampmod: %f\nvolmod: %f\nused 8-bit %ssigned PCM\n", infilepath, ampmod, volmod, useu8 ? "un" : "");
+    *name = "looped PCM (un)signed 8-bit mono file player";
     *inportscount = 0;
     *outportscount = 1;
     return 0;
@@ -71,10 +76,17 @@ unsigned short dspmodule_process(const float * const inbuffers[], float * const 
 
     for (unsigned long i = 0; i < duration; i++)
     {
-        register int8_t v = infiledata[(position + i) % infilesize];
-        outbuffers[0][i] = adjf(v > 0 ? v / (float)127 : v / (float)128, ampmod) * volmod;
+        if (useu8)
+        {
+            register uint8_t v = ((uint8_t *)infiledata)[(position + i) % infilesize];
+            outbuffers[0][i] = adjf(v / (float)255, ampmod) * volmod;
+        }
+        else
+        {
+            register int8_t v = ((int8_t *)infiledata)[(position + i) % infilesize];
+            outbuffers[0][i] = adjf(v > 0 ? v / (float)127 : v / (float)128, ampmod) * volmod;
+        }
     }
-
     return 0;
 }
 
