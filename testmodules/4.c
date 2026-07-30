@@ -5,16 +5,20 @@
 #include <getopt.h>
 
 static unsigned short ioportpairs = 0;
-static float inamod = 0.5, invmod = 1, minval = -0.5, maxval = 0.5, outamod = 0, outvmod = 0.1;
+static float incutthreshold = 0, inamod = 0.5, invmod = 1, minval = -0.5, maxval = 0.5, outamod = 0, outvmod = 0.1;
 
 unsigned short dspmodule_startup(const char **name, unsigned short *inportscount, unsigned short *outportscount, int argc, char * const argv[])
 {
     {
         int p;
-        while ((p = getopt(argc, argv, "a:v:A:V:m:M:p:")) != -1)
+        while ((p = getopt(argc, argv, "c:a:v:A:V:m:M:p:")) != -1)
         {
             switch (p)
             {
+                case 'c':
+                    if (sscanf(optarg, "%f", &incutthreshold) < 1) { puts("error parsing option -a"); return 1; }
+                    break;
+
                 case 'a':
                     if (sscanf(optarg, "%f", &inamod) < 1) { puts("error parsing option -a"); return 1; }
                     break;
@@ -48,7 +52,7 @@ unsigned short dspmodule_startup(const char **name, unsigned short *inportscount
 
     if (!ioportpairs) { puts("specify at least one I/O ports pair through -p parameter"); return 1; }
 
-    printf("I/O ports pairs: %hu\ninamod: %f\ninvmod: %f\nminval: %f\nmaxval: %f\noutamod: %f\noutvmod: %f\n", ioportpairs, inamod, invmod, minval, maxval, outamod, outvmod);
+    printf("I/O ports pairs: %hu\nincutthreshold: %f\ninamod: %f\ninvmod: %f\nminval: %f\nmaxval: %f\noutamod: %f\noutvmod: %f\n", ioportpairs, incutthreshold, inamod, invmod, minval, maxval, outamod, outvmod);
 
     *name = "completed distortion effect";
     *inportscount = ioportpairs;
@@ -65,7 +69,7 @@ unsigned short dspmodule_process(const float * const inbuffers[], float * const 
         if (!out) continue;
         if (!in) { memset(out, 0, sizeof(float) * duration); continue; }
 
-        for (unsigned long i = 0; i < duration; i++) out[i] = adjf(clampf(adjf(in[i], inamod) * invmod, minval, maxval), outamod) * outvmod;
+        for (unsigned long i = 0; i < duration; i++) out[i] = incutthreshold >= 0 && absf(in[i]) <= incutthreshold ? 0 : adjf(clampf(adjf(in[i], inamod) * invmod, minval, maxval), outamod) * outvmod;
     }
 
     return 0;
