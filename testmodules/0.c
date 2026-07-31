@@ -10,9 +10,11 @@ static float minvalue = -1, maxvalue = 1;
 static DSPPort **inports = NULL;
 static DSPPort **outports = NULL;
 
+const char *dspmodule_sysname = "clamp";
+
 unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[])
 {
-    lapi->setfiltername("clamp");
+    lapi->setfilterdispname(dspmodule_sysname);
 
     {
         int p;
@@ -37,7 +39,6 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
 
     if (!ioportpairs)
     { puts("specify at least one I/O ports pair through -p parameter"); return 1; }
-
 
     {
         register size_t portarrsize = ioportpairs * sizeof(DSPPort *);

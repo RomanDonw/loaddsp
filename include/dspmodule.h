@@ -15,8 +15,8 @@ enum DSPPortDirection
 
 struct DSPLoaderAPI
 {
-    const char *(*getfiltername)(void);
-    void (*setfiltername)(const char *);
+    const char *(*getfilterdispname)(void);
+    void (*setfilterdispname)(const char *);
 
     DSPPort *(*addport)(const char *, DSPPortDirection); // returns NULL on error.
     bool (*removeport)(DSPPort *); // returns true on success.
@@ -29,6 +29,7 @@ typedef unsigned short DSPModuleStartupFunctionPrototype(const DSPLoaderAPI *, i
 typedef unsigned short DSPModuleProcessFunctionPrototype(const DSPLoaderAPI *, unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime);
 typedef void DSPModuleCleanupFunctionPrototype(void);
 
+DSPMODULE_API extern const char *dspmodule_sysname;
 DSPMODULE_API DSPModuleStartupFunctionPrototype dspmodule_startup;
 DSPMODULE_API DSPModuleProcessFunctionPrototype dspmodule_process;
 DSPMODULE_API DSPModuleCleanupFunctionPrototype dspmodule_cleanup;

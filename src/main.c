@@ -18,15 +18,15 @@ static struct pw_main_loop *mainloop = NULL;
 static struct pw_filter *filter = NULL;
 static DSPModuleProcessFunctionPrototype *modfunc_process;
 
-const char *lapif_getfiltername(void);
-void lapif_setfiltername(const char *name);
+const char *lapif_getfilterdispname(void);
+void lapif_setfilterdispname(const char *name);
 DSPPort *lapif_addport(const char *name, DSPPortDirection direction);
 bool lapif_removeport(DSPPort *port);
 
 static DSPLoaderAPI lapi_startup =
 {
-    .getfiltername = lapif_getfiltername,
-    .setfiltername = lapif_setfiltername,
+    .getfilterdispname = lapif_getfilterdispname,
+    .setfilterdispname = lapif_setfilterdispname,
 
     .addport = lapif_addport,
     .removeport = lapif_removeport,
@@ -64,6 +64,9 @@ int main(int argc, char *argv[])
     void *module = dlopen(argv[1], RTLD_LAZY);
     if (!module) { fprintf(stderr, "dlopen(): %s\n", dlerror()); return -1; }
 
+    const char *modsysname = dlsym(module, "dspmodule_sysname");
+    if (!modsysname) { fprintf(stderr, "dlsym(\"dspmodule_sysname\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
+
     DSPModuleStartupFunctionPrototype *modfunc_startup = dlsym(module, "dspmodule_startup");
     if (!modfunc_startup) { fprintf(stderr, "dlsym(\"dspmodule_startup\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
 
@@ -84,7 +87,7 @@ int main(int argc, char *argv[])
 
     struct pw_properties *props = pw_properties_new(PW_KEY_MEDIA_TYPE, "Audio", PW_KEY_MEDIA_CATEGORY, "Filter", PW_KEY_MEDIA_ROLE, "DSP", NULL);
     if (!props) goto errorquit_aftercreatemainloop;
-    filter = pw_filter_new_simple(loop, ""/*"Digital Sound Processor"*/, props, &filterevents, NULL);
+    filter = pw_filter_new_simple(loop, modsysname/*"Digital Sound Processor"*/, props, &filterevents, NULL);
     if (!filter) { pw_properties_free(props); goto errorquit_aftercreatemainloop; }
 
     // ===============================================================
@@ -149,15 +152,15 @@ static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_stat
     puts("')");
 }
 
-const char *lapif_getfiltername(void) { return pw_filter_get_name(filter); }
-void lapif_setfiltername(const char *name)
+const char *lapif_getfilterdispname(void) { return pw_filter_get_name(filter); }
+void lapif_setfilterdispname(const char *name)
 {
-    static struct spa_dict_item items[2];
+    static struct spa_dict_item items[1];
     items[0] = SPA_DICT_ITEM_INIT(PW_KEY_NODE_DESCRIPTION, name);
-    items[1] = SPA_DICT_ITEM_INIT(PW_KEY_NODE_NICK, name);
+    //items[1] = SPA_DICT_ITEM_INIT(PW_KEY_NODE_NICK, name);
 
     static struct spa_dict props;
-    props = SPA_DICT_INIT(items, 2);
+    props = SPA_DICT_INIT(items, 1);
     pw_filter_update_properties(filter, NULL, &props);
 }
 
