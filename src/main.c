@@ -18,22 +18,23 @@ static struct pw_main_loop *mainloop = NULL;
 static struct pw_filter *filter = NULL;
 static DSPModuleProcessFunctionPrototype *modfunc_process;
 
-const char *lapi_getfiltername(void);
-void lapi_setfiltername(const char *name);
-DSPPort *lapi_addport(const char *name, DSPPortDirection direction);
-bool lapi_removeport(DSPPort *port);
+const char *lapif_getfiltername(void);
+void lapif_setfiltername(const char *name);
+DSPPort *lapif_addport(const char *name, DSPPortDirection direction);
+bool lapif_removeport(DSPPort *port);
 
-static DSPLoaderAPI lapi =
+static DSPLoaderAPI lapi_startup =
 {
-    .getfiltername = lapi_getfiltername,
-    .setfiltername = lapi_setfiltername,
+    .getfiltername = lapif_getfiltername,
+    .setfiltername = lapif_setfiltername,
 
-    .addport = lapi_addport,
-    .removeport = lapi_removeport,
+    .addport = lapif_addport,
+    .removeport = lapif_removeport,
     //.getportname = ,
     //.setportname = ,
-    .getportbuffer = (float *(*)(DSPPort *, unsigned long))pw_filter_get_dsp_buffer
 };
+
+static DSPLoaderAPI lapi_process = { .getportbuffer = (float *(*)(DSPPort *, unsigned long))pw_filter_get_dsp_buffer };
 
 static void procdsp(void *userdata, struct spa_io_position *position);
 static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_state state, const char *error);
@@ -83,22 +84,23 @@ int main(int argc, char *argv[])
 
     struct pw_properties *props = pw_properties_new(PW_KEY_MEDIA_TYPE, "Audio", PW_KEY_MEDIA_CATEGORY, "Filter", PW_KEY_MEDIA_ROLE, "DSP", NULL);
     if (!props) goto errorquit_aftercreatemainloop;
-    filter = pw_filter_new_simple(loop, "Digital Sound Processor", props, &filterevents, NULL);
+    filter = pw_filter_new_simple(loop, ""/*"Digital Sound Processor"*/, props, &filterevents, NULL);
     if (!filter) { pw_properties_free(props); goto errorquit_aftercreatemainloop; }
 
     // ===============================================================
 
-    if (pw_filter_connect(filter, 0, NULL, 0)) { fputs("error connecting filter.", stderr); goto errorquit_aftercreatefilter; }
-
     {
-        unsigned short ret = modfunc_startup(&lapi, argc - 1, &argv[1]);
-        if (ret) { fputs("\nmodule internal initialization error", stderr); exitcode = ret; goto errorquit_aftercreatefilter; }
+        unsigned short ret = modfunc_startup(&lapi_startup, argc - 1, &argv[1]);
+        if (ret) { fputs("\nmodule internal initialization error\n", stderr); exitcode = ret; goto errorquit_aftercreatefilter; }
     }
+
+    if (pw_filter_connect(filter, 0, NULL, 0)) { fputs("error connecting filter.", stderr); goto errorquit_aftermodulestartup; }
 
     exitcode = 0;
     pw_main_loop_run(mainloop);
 
-    modfunc_cleanup();
+    errorquit_aftermodulestartup:
+        modfunc_cleanup();
     errorquit_aftercreatefilter:
         pw_filter_destroy(filter);
     errorquit_aftercreatemainloop:
@@ -112,7 +114,7 @@ int main(int argc, char *argv[])
 
 static void procdsp(void *userdata, struct spa_io_position *position)
 {
-    unsigned short ret = modfunc_process(position->clock.position, position->clock.duration, position->clock.rate.denom, position->clock.nsec);
+    unsigned short ret = modfunc_process(&lapi_process, position->clock.position, position->clock.duration, position->clock.rate.denom, position->clock.nsec);
     if (ret) { exitcode = ret; pw_main_loop_quit(mainloop); }
 }
 
@@ -147,8 +149,8 @@ static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_stat
     puts("')");
 }
 
-const char *lapi_getfiltername(void) { return pw_filter_get_name(filter); }
-void lapi_setfiltername(const char *name)
+const char *lapif_getfiltername(void) { return pw_filter_get_name(filter); }
+void lapif_setfiltername(const char *name)
 {
     static struct spa_dict_item items[2];
     items[0] = SPA_DICT_ITEM_INIT(PW_KEY_NODE_DESCRIPTION, name);
@@ -159,7 +161,7 @@ void lapi_setfiltername(const char *name)
     pw_filter_update_properties(filter, NULL, &props);
 }
 
-DSPPort *lapi_addport(const char *name, DSPPortDirection direction)
+DSPPort *lapif_addport(const char *name, DSPPortDirection direction)
 {
     enum pw_direction dir;
     char *strdir;
@@ -198,4 +200,4 @@ DSPPort *lapi_addport(const char *name, DSPPortDirection direction)
     return ret;
 }
 
-bool lapi_removeport(DSPPort *port) { return !pw_filter_remove_port(port); }
+bool lapif_removeport(DSPPort *port) { return !pw_filter_remove_port(port); }

@@ -26,7 +26,7 @@ struct DSPLoaderAPI
 } typedef DSPLoaderAPI;
 
 typedef unsigned short DSPModuleStartupFunctionPrototype(const DSPLoaderAPI *, int argc, char * const argv[]);
-typedef unsigned short DSPModuleProcessFunctionPrototype(unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime);
+typedef unsigned short DSPModuleProcessFunctionPrototype(const DSPLoaderAPI *, unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime);
 typedef void DSPModuleCleanupFunctionPrototype(void);
 
 DSPMODULE_API DSPModuleStartupFunctionPrototype dspmodule_startup;

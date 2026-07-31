@@ -2,13 +2,18 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <getopt.h>
 
 static unsigned short ioportpairs = 0;
 static float minvalue = -1, maxvalue = 1;
+static DSPPort **inports = NULL;
+static DSPPort **outports = NULL;
 
-unsigned short dspmodule_startup(const char **name, unsigned short *inportscount, unsigned short *outportscount, int argc, char * const argv[])
+unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[])
 {
+    lapi->setfiltername("clamp");
+
     {
         int p;
         while ((p = getopt(argc, argv, "m:M:p:")) != -1)
@@ -30,22 +35,48 @@ unsigned short dspmodule_startup(const char **name, unsigned short *inportscount
         }
     }
 
-    if (!ioportpairs) { puts("specify at least one I/O ports pair through -p parameter"); return 1; }
+    if (!ioportpairs)
+    { puts("specify at least one I/O ports pair through -p parameter"); return 1; }
+
+
+    {
+        register size_t portarrsize = ioportpairs * sizeof(DSPPort *);
+        if (!((inports = malloc(portarrsize)) &&
+                (outports = malloc(portarrsize))))
+        { puts("memory allocation failed"); goto errorquit_onorafterallocportarrays; }
+    }
+
+    {
+        char namebuff[16];
+        for (unsigned short i = 0; i < ioportpairs; i++)
+        {
+            if (snprintf(namebuff, sizeof(namebuff), "input_%hu", i) < 0)
+            { puts("snprintf formatting error"); goto errorquit_onorafterallocportarrays; }
+            if (!(inports[i] = lapi->addport(namebuff, DSPPortDirection_Input)))
+            { printf("unable to create input port with name \"%s\"\n", namebuff); goto errorquit_onorafterallocportarrays; }
+
+            if (snprintf(namebuff, sizeof(namebuff), "output_%hu", i) < 0)
+            { puts("snprintf formatting error"); goto errorquit_onorafterallocportarrays; }
+            if (!(outports[i] = lapi->addport(namebuff, DSPPortDirection_Output)))
+            { printf("unable to create output port with name \"%s\"\n", namebuff); goto errorquit_onorafterallocportarrays; }
+        }
+    }
 
     printf("I/O ports pairs: %hu\nminimum value: %f\nmaximum value: %f\n", ioportpairs, minvalue, maxvalue);
-
-    *name = "clamp";
-    *inportscount = ioportpairs;
-    *outportscount = ioportpairs;
     return 0;
+
+    errorquit_onorafterallocportarrays:
+        free(outports);
+        free(inports);
+    return 1;
 }
 
-unsigned short dspmodule_process(const float * const inbuffers[], float * const outbuffers[], unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime)
+unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime)
 {
     for (unsigned short ch = 0; ch < ioportpairs; ch++)
     {
-        const float *in = inbuffers[ch];
-        float *out = outbuffers[ch];
+        const float *in = lapi->getportbuffer(inports[ch], duration);
+        float *out = lapi->getportbuffer(outports[ch], duration);
         if (!out) continue;
         if (!in) { memset(out, 0, sizeof(float) * duration); continue; }
 
@@ -55,4 +86,8 @@ unsigned short dspmodule_process(const float * const inbuffers[], float * const 
     return 0;
 }
 
-void dspmodule_cleanup(void) {}
+void dspmodule_cleanup(void)
+{
+    free(outports);
+    free(inports);
+}
