@@ -10,14 +10,30 @@
 
 #include <spa/pod/builder.h>
 #include <spa/param/latency-utils.h>
+#include <spa/utils/dict.h>
 
 #include "dspmodule.h"
 
 static struct pw_main_loop *mainloop = NULL;
+static struct pw_filter *filter = NULL;
 static DSPModuleProcessFunctionPrototype *modfunc_process;
-static float **inbuffers = NULL, **outbuffers = NULL;
-static void **inports = NULL, **outports = NULL;
-static unsigned short inportscount = 0, outportscount = 0;
+
+const char *lapi_getfiltername(void);
+void lapi_setfiltername(const char *name);
+DSPPort *lapi_addport(const char *name, DSPPortDirection direction);
+bool lapi_removeport(DSPPort *port);
+
+static DSPLoaderAPI lapi =
+{
+    .getfiltername = lapi_getfiltername,
+    .setfiltername = lapi_setfiltername,
+
+    .addport = lapi_addport,
+    .removeport = lapi_removeport,
+    //.getportname = ,
+    //.setportname = ,
+    .getportbuffer = (float *(*)(DSPPort *, unsigned long))pw_filter_get_dsp_buffer
+};
 
 static void procdsp(void *userdata, struct spa_io_position *position);
 static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_state state, const char *error);
@@ -58,32 +74,6 @@ int main(int argc, char *argv[])
 
     // ===============================================================
 
-    const char *modname = "";
-    {
-        unsigned short ret = modfunc_startup(&modname, &inportscount, &outportscount, argc - 1, &argv[1]);
-        if (ret) { fputs("module internal initialization error\n", stderr); exitcode = ret; goto errorquit_afteropenmodule; }
-    }
-
-    // ===============================================================
-
-    if (inportscount)
-    {
-        if (!(
-            (inbuffers = malloc(sizeof(float *) * inportscount)) &&\
-            (inports = malloc(sizeof(void *) * inportscount))))
-                { fputs("memory allocation failed", stderr); goto errorquit_onalloc; }
-    }
-
-    if (outportscount)
-    {
-        if (!(
-            (outbuffers = malloc(sizeof(float *) * outportscount)) &&\
-            (outports = malloc(sizeof(void *) * outportscount))))
-                { fputs("memory allocation failed", stderr); goto errorquit_onalloc; }
-    }
-
-    // ===============================================================
-
     pw_init(NULL, NULL);
 
     if (!(mainloop = pw_main_loop_new(NULL))) goto errorquit_oncreatemainloop;
@@ -93,53 +83,28 @@ int main(int argc, char *argv[])
 
     struct pw_properties *props = pw_properties_new(PW_KEY_MEDIA_TYPE, "Audio", PW_KEY_MEDIA_CATEGORY, "Filter", PW_KEY_MEDIA_ROLE, "DSP", NULL);
     if (!props) goto errorquit_aftercreatemainloop;
-    struct pw_filter *filter = pw_filter_new_simple(loop, modname, props, &filterevents, NULL);
-    if (!filter) goto errorquit_aftercreatemainloop;
-
-    // ===============================================================
-
-    void *port;
-    for (unsigned short i = 0; i < inportscount; i++)
-    {
-        if (!(props = pw_properties_new(PW_KEY_FORMAT_DSP, "32 bit float mono audio", PW_KEY_PORT_NAME, "input", NULL)))
-        { fputs("error creating input port properties", stderr); goto errorquit_aftercreatefilter; }
-
-        if (!(port = pw_filter_add_port(filter, PW_DIRECTION_INPUT, PW_FILTER_PORT_FLAG_MAP_BUFFERS, 0, props, NULL, 0)))
-        { fputs("error adding input port", stderr); goto errorquit_aftercreatefilter; }
-
-        inports[i] = port;
-    }
-
-    for (unsigned short i = 0; i < outportscount; i++)
-    {
-        if (!(props = pw_properties_new(PW_KEY_FORMAT_DSP, "32 bit float mono audio", PW_KEY_PORT_NAME, "output", NULL)))
-        { fputs("error creating output port properties", stderr); goto errorquit_aftercreatefilter; }
-
-        if (!(port = pw_filter_add_port(filter, PW_DIRECTION_OUTPUT, PW_FILTER_PORT_FLAG_MAP_BUFFERS, 0, props, NULL, 0)))
-        { fputs("error adding output port", stderr); goto errorquit_aftercreatefilter; }
-
-        outports[i] = port;
-    }
+    filter = pw_filter_new_simple(loop, "Digital Sound Processor", props, &filterevents, NULL);
+    if (!filter) { pw_properties_free(props); goto errorquit_aftercreatemainloop; }
 
     // ===============================================================
 
     if (pw_filter_connect(filter, 0, NULL, 0)) { fputs("error connecting filter.", stderr); goto errorquit_aftercreatefilter; }
 
+    {
+        unsigned short ret = modfunc_startup(&lapi, argc - 1, &argv[1]);
+        if (ret) { fputs("\nmodule internal initialization error", stderr); exitcode = ret; goto errorquit_aftercreatefilter; }
+    }
+
     exitcode = 0;
     pw_main_loop_run(mainloop);
-    
+
+    modfunc_cleanup();
     errorquit_aftercreatefilter:
         pw_filter_destroy(filter);
     errorquit_aftercreatemainloop:
         pw_main_loop_destroy(mainloop);
     errorquit_oncreatemainloop:
         pw_deinit();
-    errorquit_onalloc:
-        free(outports);
-        free(outbuffers);
-        free(inports);
-        free(inbuffers);
-        modfunc_cleanup();
     errorquit_afteropenmodule:
         dlclose(module);
     return exitcode;
@@ -147,10 +112,7 @@ int main(int argc, char *argv[])
 
 static void procdsp(void *userdata, struct spa_io_position *position)
 {
-    for (unsigned short i = 0; i < inportscount; i++) inbuffers[i] = pw_filter_get_dsp_buffer(inports[i], position->clock.duration);
-    for (unsigned short i = 0; i < outportscount; i++) outbuffers[i] = pw_filter_get_dsp_buffer(outports[i], position->clock.duration);
-
-    unsigned short ret = modfunc_process((const float * const *)inbuffers, (float * const *)outbuffers, position->clock.position, position->clock.duration, position->clock.rate.denom, position->clock.nsec);
+    unsigned short ret = modfunc_process(position->clock.position, position->clock.duration, position->clock.rate.denom, position->clock.nsec);
     if (ret) { exitcode = ret; pw_main_loop_quit(mainloop); }
 }
 
@@ -184,3 +146,56 @@ static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_stat
     }
     puts("')");
 }
+
+const char *lapi_getfiltername(void) { return pw_filter_get_name(filter); }
+void lapi_setfiltername(const char *name)
+{
+    static struct spa_dict_item items[2];
+    items[0] = SPA_DICT_ITEM_INIT(PW_KEY_NODE_DESCRIPTION, name);
+    items[1] = SPA_DICT_ITEM_INIT(PW_KEY_NODE_NICK, name);
+
+    static struct spa_dict props;
+    props = SPA_DICT_INIT(items, 2);
+    pw_filter_update_properties(filter, NULL, &props);
+}
+
+DSPPort *lapi_addport(const char *name, DSPPortDirection direction)
+{
+    enum pw_direction dir;
+    char *strdir;
+    switch (direction)
+    {
+        case DSPPortDirection_Input:
+            dir = PW_DIRECTION_INPUT;
+            strdir = "input";
+            break;
+
+        case DSPPortDirection_Output:
+            dir = PW_DIRECTION_OUTPUT;
+            strdir = "output";
+            break;
+
+        default:
+            //fprintf(stderr, "invalid port direction (port name: \"%s\")\n", name)
+            return NULL;
+    }
+
+    struct pw_properties *props = pw_properties_new(PW_KEY_FORMAT_DSP, "32 bit float mono audio", PW_KEY_PORT_NAME, name, NULL);
+    if (!props)
+    {
+        //fprintf(stderr, "error creating properties of %s port with name \"%s\"\n", strdir, name);
+        return NULL;
+    }
+
+    DSPPort *ret = pw_filter_add_port(filter, dir, PW_FILTER_PORT_FLAG_MAP_BUFFERS, 0, props, NULL, 0);
+    if (!ret)
+    {
+        //fprintf(stderr, "error adding %s port with name \"%s\"\n", strdir, name);
+        pw_properties_free(props);
+        return NULL;
+    }
+
+    return ret;
+}
+
+bool lapi_removeport(DSPPort *port) { return !pw_filter_remove_port(port); }
