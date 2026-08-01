@@ -17,14 +17,14 @@ struct DSPLoaderAPI
     const char *(*getfilterdispname)(void);
     void (*setfilterdispname)(const char *);
 
-    void *(*addport)(const char *, DSPPortDirection, size_t); // returns NULL on error. third parameter can be zero.
-    bool (*removeport)(void *); // returns true on success.
-    //const char *(*getportname)(void *);
-    //void (*setportname)(void *, const char *);
+    void *(*addport)(const char *, const char *, DSPPortDirection, size_t); // returns NULL on error. second & forth parameters can be zero.
+    void (*removeport)(void *);
+    const char *(*getportdispname)(void *);
+    void (*setportdispname)(void *, const char *);
     float *(*getportbuffer)(void *, unsigned long); // returns NULL if buffer isn't available.
 } typedef DSPLoaderAPI;
 
-typedef unsigned short DSPModuleStartupFunctionPrototype(const DSPLoaderAPI *, int argc, char * const argv[], const char **sysname);
+typedef unsigned short DSPModuleStartupFunctionPrototype(const DSPLoaderAPI *, int argc, char * const argv[], const char **sysname, const char **dispname);
 typedef unsigned short DSPModuleProcessFunctionPrototype(const DSPLoaderAPI *, unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime);
 typedef void DSPModuleCleanupFunctionPrototype(void);
 

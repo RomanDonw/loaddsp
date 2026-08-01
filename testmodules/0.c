@@ -10,7 +10,7 @@ static float minvalue = -1, maxvalue = 1;
 static void **inports = NULL;
 static void **outports = NULL;
 
-unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname)
+unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
 {
     {
         int p;
