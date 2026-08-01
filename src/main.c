@@ -81,7 +81,13 @@ int main(int argc, char *argv[])
 
     if (!(pw_loop_add_signal(loop, SIGINT, quitsignal, NULL) && pw_loop_add_signal(loop, SIGTERM, quitsignal, NULL))) goto errorquit_aftercreatemainloop;
 
-    struct pw_properties *props = pw_properties_new(PW_KEY_MEDIA_TYPE, "Audio", PW_KEY_MEDIA_CATEGORY, "Filter", PW_KEY_MEDIA_ROLE, "DSP", NULL);
+    struct pw_properties *props = pw_properties_new(
+        PW_KEY_MEDIA_TYPE, "Audio",
+        PW_KEY_MEDIA_CATEGORY, "Filter",
+        PW_KEY_MEDIA_ROLE, "DSP",
+        "node.passive", "true",
+        "wireplumber.policy", "disabled",
+    NULL);
     if (!props) goto errorquit_aftercreatemainloop;
     filter = pw_filter_new_simple(loop, NULL, props, &filterevents, NULL);
     if (!filter) { pw_properties_free(props); goto errorquit_aftercreatemainloop; }
@@ -187,7 +193,8 @@ void *lapif_addport(const char *name, DSPPortDirection direction, size_t userdat
     if (!props) return NULL;
 
     void *ret = pw_filter_add_port(filter, dir, PW_FILTER_PORT_FLAG_MAP_BUFFERS, 0, props, NULL, 0);
-    if (!ret) { pw_properties_free(props); return NULL; }
+    pw_properties_free(props); 
+    if (!ret) return NULL;
 
     return ret;
 }
