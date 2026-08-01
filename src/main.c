@@ -20,8 +20,8 @@ static DSPModuleProcessFunctionPrototype *modfunc_process;
 
 const char *lapif_getfilterdispname(void);
 void lapif_setfilterdispname(const char *name);
-DSPPort *lapif_addport(const char *name, DSPPortDirection direction);
-bool lapif_removeport(DSPPort *port);
+void *lapif_addport(const char *name, DSPPortDirection direction, size_t userdatasize);
+bool lapif_removeport(void *port);
 
 static DSPLoaderAPI lapi_startup =
 {
@@ -33,8 +33,7 @@ static DSPLoaderAPI lapi_startup =
     //.getportname = ,
     //.setportname = ,
 };
-
-static DSPLoaderAPI lapi_process = { .getportbuffer = (float *(*)(DSPPort *, unsigned long))pw_filter_get_dsp_buffer };
+static DSPLoaderAPI lapi_process = { .getportbuffer = (float *(*)(void *, unsigned long))pw_filter_get_dsp_buffer };
 
 static void procdsp(void *userdata, struct spa_io_position *position);
 static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_state state, const char *error);
@@ -64,9 +63,6 @@ int main(int argc, char *argv[])
     void *module = dlopen(argv[1], RTLD_LAZY);
     if (!module) { fprintf(stderr, "dlopen(): %s\n", dlerror()); return -1; }
 
-    const char *modsysname = dlsym(module, "dspmodule_sysname");
-    if (!modsysname) { fprintf(stderr, "dlsym(\"dspmodule_sysname\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
-
     DSPModuleStartupFunctionPrototype *modfunc_startup = dlsym(module, "dspmodule_startup");
     if (!modfunc_startup) { fprintf(stderr, "dlsym(\"dspmodule_startup\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
 
@@ -87,15 +83,22 @@ int main(int argc, char *argv[])
 
     struct pw_properties *props = pw_properties_new(PW_KEY_MEDIA_TYPE, "Audio", PW_KEY_MEDIA_CATEGORY, "Filter", PW_KEY_MEDIA_ROLE, "DSP", NULL);
     if (!props) goto errorquit_aftercreatemainloop;
-    filter = pw_filter_new_simple(loop, modsysname/*"Digital Sound Processor"*/, props, &filterevents, NULL);
+    filter = pw_filter_new_simple(loop, NULL, props, &filterevents, NULL);
     if (!filter) { pw_properties_free(props); goto errorquit_aftercreatemainloop; }
 
     // ===============================================================
 
     {
-        unsigned short ret = modfunc_startup(&lapi_startup, argc - 1, &argv[1]);
+        const char *sysname;
+        unsigned short ret = modfunc_startup(&lapi_startup, argc - 1, &argv[1], &sysname);
         if (ret) { fputs("\nmodule internal initialization error\n", stderr); exitcode = ret; goto errorquit_aftercreatefilter; }
+
+        struct spa_dict_item newfiltername = SPA_DICT_ITEM_INIT(PW_KEY_NODE_NAME, sysname);
+        struct spa_dict props_newfiltername = SPA_DICT_INIT(&newfiltername, 1);
+        pw_filter_update_properties(filter, NULL, &props_newfiltername);
     }
+
+    // ===============================================================
 
     if (pw_filter_connect(filter, 0, NULL, 0)) { fputs("error connecting filter.", stderr); goto errorquit_aftermodulestartup; }
 
@@ -155,19 +158,15 @@ static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_stat
 const char *lapif_getfilterdispname(void) { return pw_filter_get_name(filter); }
 void lapif_setfilterdispname(const char *name)
 {
-    static struct spa_dict_item items[1];
-    items[0] = SPA_DICT_ITEM_INIT(PW_KEY_NODE_DESCRIPTION, name);
-    //items[1] = SPA_DICT_ITEM_INIT(PW_KEY_NODE_NICK, name);
-
-    static struct spa_dict props;
-    props = SPA_DICT_INIT(items, 1);
+    struct spa_dict_item descr = SPA_DICT_ITEM_INIT(PW_KEY_NODE_DESCRIPTION, name);
+    struct spa_dict props = SPA_DICT_INIT(&descr, 1);
     pw_filter_update_properties(filter, NULL, &props);
 }
 
-DSPPort *lapif_addport(const char *name, DSPPortDirection direction)
+void *lapif_addport(const char *name, DSPPortDirection direction, size_t userdatasize)
 {
     enum pw_direction dir;
-    char *strdir;
+    const char *strdir;
     switch (direction)
     {
         case DSPPortDirection_Input:
@@ -181,26 +180,16 @@ DSPPort *lapif_addport(const char *name, DSPPortDirection direction)
             break;
 
         default:
-            //fprintf(stderr, "invalid port direction (port name: \"%s\")\n", name)
             return NULL;
     }
 
     struct pw_properties *props = pw_properties_new(PW_KEY_FORMAT_DSP, "32 bit float mono audio", PW_KEY_PORT_NAME, name, NULL);
-    if (!props)
-    {
-        //fprintf(stderr, "error creating properties of %s port with name \"%s\"\n", strdir, name);
-        return NULL;
-    }
+    if (!props) return NULL;
 
-    DSPPort *ret = pw_filter_add_port(filter, dir, PW_FILTER_PORT_FLAG_MAP_BUFFERS, 0, props, NULL, 0);
-    if (!ret)
-    {
-        //fprintf(stderr, "error adding %s port with name \"%s\"\n", strdir, name);
-        pw_properties_free(props);
-        return NULL;
-    }
+    void *ret = pw_filter_add_port(filter, dir, PW_FILTER_PORT_FLAG_MAP_BUFFERS, 0, props, NULL, 0);
+    if (!ret) { pw_properties_free(props); return NULL; }
 
     return ret;
 }
 
-bool lapif_removeport(DSPPort *port) { return !pw_filter_remove_port(port); }
+bool lapif_removeport(void *port) { return !pw_filter_remove_port(port); }

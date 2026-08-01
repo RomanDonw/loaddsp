@@ -2,10 +2,9 @@
 #define DSPMODULE_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #define DSPMODULE_API __attribute__((visibility("default")))
-
-typedef void DSPPort;
 
 enum DSPPortDirection
 {
@@ -18,18 +17,17 @@ struct DSPLoaderAPI
     const char *(*getfilterdispname)(void);
     void (*setfilterdispname)(const char *);
 
-    DSPPort *(*addport)(const char *, DSPPortDirection); // returns NULL on error.
-    bool (*removeport)(DSPPort *); // returns true on success.
-    //const char *(*getportname)(DSPPort *);
-    //void (*setportname)(DSPPort *, const char *);
-    float *(*getportbuffer)(DSPPort *, unsigned long); // returns NULL if buffer isn't available.
+    void *(*addport)(const char *, DSPPortDirection, size_t); // returns NULL on error. third parameter can be zero.
+    bool (*removeport)(void *); // returns true on success.
+    //const char *(*getportname)(void *);
+    //void (*setportname)(void *, const char *);
+    float *(*getportbuffer)(void *, unsigned long); // returns NULL if buffer isn't available.
 } typedef DSPLoaderAPI;
 
-typedef unsigned short DSPModuleStartupFunctionPrototype(const DSPLoaderAPI *, int argc, char * const argv[]);
+typedef unsigned short DSPModuleStartupFunctionPrototype(const DSPLoaderAPI *, int argc, char * const argv[], const char **sysname);
 typedef unsigned short DSPModuleProcessFunctionPrototype(const DSPLoaderAPI *, unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime);
 typedef void DSPModuleCleanupFunctionPrototype(void);
 
-DSPMODULE_API extern const char *dspmodule_sysname;
 DSPMODULE_API DSPModuleStartupFunctionPrototype dspmodule_startup;
 DSPMODULE_API DSPModuleProcessFunctionPrototype dspmodule_process;
 DSPMODULE_API DSPModuleCleanupFunctionPrototype dspmodule_cleanup;

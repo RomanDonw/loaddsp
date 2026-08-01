@@ -7,15 +7,11 @@
 
 static unsigned short ioportpairs = 0;
 static float minvalue = -1, maxvalue = 1;
-static DSPPort **inports = NULL;
-static DSPPort **outports = NULL;
+static void **inports = NULL;
+static void **outports = NULL;
 
-const char *dspmodule_sysname = "clamp";
-
-unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[])
+unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname)
 {
-    lapi->setfilterdispname(dspmodule_sysname);
-
     {
         int p;
         while ((p = getopt(argc, argv, "m:M:p:")) != -1)
@@ -41,7 +37,7 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     { puts("specify at least one I/O ports pair through -p parameter"); return 1; }
 
     {
-        register size_t portarrsize = ioportpairs * sizeof(DSPPort *);
+        register size_t portarrsize = ioportpairs * sizeof(void *);
         if (!((inports = malloc(portarrsize)) &&
                 (outports = malloc(portarrsize))))
         { puts("memory allocation failed"); goto errorquit_onorafterallocportarrays; }
@@ -53,17 +49,18 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
         {
             if (snprintf(namebuff, sizeof(namebuff), "input_%hu", i) < 0)
             { puts("snprintf formatting error"); goto errorquit_onorafterallocportarrays; }
-            if (!(inports[i] = lapi->addport(namebuff, DSPPortDirection_Input)))
+            if (!(inports[i] = lapi->addport(namebuff, DSPPortDirection_Input, 0)))
             { printf("unable to create input port with name \"%s\"\n", namebuff); goto errorquit_onorafterallocportarrays; }
 
             if (snprintf(namebuff, sizeof(namebuff), "output_%hu", i) < 0)
             { puts("snprintf formatting error"); goto errorquit_onorafterallocportarrays; }
-            if (!(outports[i] = lapi->addport(namebuff, DSPPortDirection_Output)))
+            if (!(outports[i] = lapi->addport(namebuff, DSPPortDirection_Output, 0)))
             { printf("unable to create output port with name \"%s\"\n", namebuff); goto errorquit_onorafterallocportarrays; }
         }
     }
 
     printf("I/O ports pairs: %hu\nminimum value: %f\nmaximum value: %f\n", ioportpairs, minvalue, maxvalue);
+    *sysname = "clamp";
     return 0;
 
     errorquit_onorafterallocportarrays:
