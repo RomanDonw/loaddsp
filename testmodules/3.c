@@ -7,8 +7,9 @@
 
 static unsigned short freq = 0;
 static float minvalue = -1, maxvalue = 1;
+static void *outport = NULL;
 
-unsigned short dspmodule_startup(const char **name, unsigned short *inportscount, unsigned short *outportscount, int argc, char * const argv[])
+unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
 {
     {
         int p;
@@ -33,20 +34,23 @@ unsigned short dspmodule_startup(const char **name, unsigned short *inportscount
 
     if (!freq || freq > 20000) { puts("frequency must be in range [1..20000]"); return 1; }
 
-    *name = "square wave generator";
-    *inportscount = 0;
-    *outportscount = 1;
+    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { puts("error adding output port"); return 1; }
+
+    printf("frequency: %hu Hz\nmin value: %f\nmax value: %f\n", freq, minvalue, maxvalue);
+    *sysname = "sqwavegen";
+    *dispname = "square wave generator";
     return 0;
 }
 
-unsigned short dspmodule_process(const float * const inbuffers[], float * const outbuffers[], unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime)
+unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime)
 {
-    if (!(outbuffers[0] && rate)) return 0;
+    float *out = lapi->getportbuffer(outport, duration);
+    if (!(out && rate)) return 0;
 
     unsigned long long insecondpos = position % rate;
     unsigned long long fragscount = rate / (2 * freq);
 
-    for (unsigned long i = 0; i < duration; i++) outbuffers[0][i] = ((insecondpos + i) / fragscount) % 2 ? maxvalue : minvalue;
+    for (unsigned long i = 0; i < duration; i++) out[i] = ((insecondpos + i) / fragscount) % 2 ? maxvalue : minvalue;
 
     return 0;
 }
