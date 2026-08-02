@@ -6,14 +6,14 @@
 #include <stdbool.h>
 
 static unsigned short freq = 0;
-static float minvalue = -1, maxvalue = 1;
+static float minvalue = -1, maxvalue = 1, volmod = 0.1;
 static void *outport = NULL;
 
 unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
 {
     {
         int p;
-        while ((p = getopt(argc, argv, "f:m:M:")) != -1)
+        while ((p = getopt(argc, argv, "f:m:M:v:")) != -1)
         {
             switch (p)
             {
@@ -28,6 +28,10 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
                 case 'M':
                     if (sscanf(optarg, "%f", &maxvalue) < 1) { puts("error parsing option -M"); return 1; }
                     break;
+
+                case 'v':
+                    if (sscanf(optarg, "%f", &volmod) < 1) { puts("error parsing option -v"); return 1; }
+                    break;
             }
         }
     }
@@ -36,7 +40,7 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
 
     if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { puts("error adding output port"); return 1; }
 
-    printf("frequency: %hu Hz\nmin value: %f\nmax value: %f\n", freq, minvalue, maxvalue);
+    printf("frequency: %hu Hz\nmin value: %f\nmax value: %f\nvolmod: %f\n", freq, minvalue, maxvalue, volmod);
     *sysname = "sqwavegen";
     *dispname = "square wave generator";
     return 0;
@@ -50,7 +54,7 @@ unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long po
     unsigned long long insecondpos = position % rate;
     unsigned long long fragscount = rate / (2 * freq);
 
-    for (unsigned long i = 0; i < duration; i++) out[i] = ((insecondpos + i) / fragscount) % 2 ? maxvalue : minvalue;
+    for (unsigned long i = 0; i < duration; i++) out[i] = (((insecondpos + i) / fragscount) % 2 ? maxvalue : minvalue) * volmod;
 
     return 0;
 }
