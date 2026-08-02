@@ -7,8 +7,7 @@
 
 static unsigned short ioportpairs = 0;
 static float minvalue = -1, maxvalue = 1;
-static void **inports = NULL;
-static void **outports = NULL;
+static void **inports = NULL, **outports = NULL;
 
 unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
 {
