@@ -1,7 +1,6 @@
 #ifndef DSPMODULE_H
 #define DSPMODULE_H
 
-#include <stdbool.h>
 #include <stddef.h>
 
 #define DSPMODULE_API __attribute__((visibility("default")))

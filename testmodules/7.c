@@ -1,6 +1,5 @@
 #include "dspmodule.h"
 
-#include <stddef.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,11 +8,11 @@
 #include <stdbool.h>
 
 static float ampmod = 0, volmod = 0.1;
-static void *infiledata;
+static void *infiledata, *outport;
 static size_t infilesize;
 static bool useu8 = false;
 
-unsigned short dspmodule_startup(const char **name, unsigned short *inportscount, unsigned short *outportscount, int argc, char * const argv[])
+unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
 {
     char *infilepath = NULL;
     {
@@ -43,6 +42,8 @@ unsigned short dspmodule_startup(const char **name, unsigned short *inportscount
 
     if (!infilepath) { puts("specify source audio file through -f parameter"); return 1; }
 
+    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { puts("error creating output port"); return 1; }
+
     FILE *f = fopen(infilepath, "rb");
     if (!f) { puts("unable to open specified file"); return 1; }
 
@@ -64,27 +65,27 @@ unsigned short dspmodule_startup(const char **name, unsigned short *inportscount
     fclose(f);
 
     printf("in file: \"%s\"\nampmod: %f\nvolmod: %f\nused 8-bit %ssigned PCM\n", infilepath, ampmod, volmod, useu8 ? "un" : "");
-    *name = "looped PCM (un)signed 8-bit mono file player";
-    *inportscount = 0;
-    *outportscount = 1;
+    *sysname = "pcmfileplayer";
+    *dispname = "looped PCM (un)signed 8-bit mono file player";
     return 0;
 }
 
-unsigned short dspmodule_process(const float * const inbuffers[], float * const outbuffers[], unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime)
+unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime)
 {
-    if (!outbuffers[0]) return 0;
+    float *out = lapi->getportbuffer(outport, duration);
+    if (!out) return 0;
 
     for (unsigned long i = 0; i < duration; i++)
     {
         if (useu8)
         {
             register uint8_t v = ((uint8_t *)infiledata)[(position + i) % infilesize];
-            outbuffers[0][i] = adjf(v / (float)255, ampmod) * volmod;
+            out[i] = adjf(v / (float)255, ampmod) * volmod;
         }
         else
         {
             register int8_t v = ((int8_t *)infiledata)[(position + i) % infilesize];
-            outbuffers[0][i] = adjf(v > 0 ? v / (float)127 : v / (float)128, ampmod) * volmod;
+            out[i] = adjf(v > 0 ? v / (float)127 : v / (float)128, ampmod) * volmod;
         }
     }
     return 0;
