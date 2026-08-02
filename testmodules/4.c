@@ -3,11 +3,13 @@
 #include <string.h>
 #include <stdio.h>
 #include <getopt.h>
+#include <stdlib.h>
 
 static unsigned short ioportpairs = 0;
 static float incutthreshold = 0, inamod = 0.5, invmod = 1, minval = -0.5, maxval = 0.5, outamod = 0, outvmod = 0.1;
+static void **inports = NULL, **outports = NULL;
 
-unsigned short dspmodule_startup(const char **name, unsigned short *inportscount, unsigned short *outportscount, int argc, char * const argv[])
+unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
 {
     {
         int p;
@@ -52,27 +54,60 @@ unsigned short dspmodule_startup(const char **name, unsigned short *inportscount
 
     if (!ioportpairs) { puts("specify at least one I/O ports pair through -p parameter"); return 1; }
 
-    printf("I/O ports pairs: %hu\nincutthreshold: %f\ninamod: %f\ninvmod: %f\nminval: %f\nmaxval: %f\noutamod: %f\noutvmod: %f\n", ioportpairs, incutthreshold, inamod, invmod, minval, maxval, outamod, outvmod);
+    {
+        register size_t portarrsize = ioportpairs * sizeof(void *);
+        if (!((inports = malloc(portarrsize)) &&
+                (outports = malloc(portarrsize))))
+        { puts("memory allocation failed"); goto errorquit_onorafterallocportarrays; }
+    }
 
-    *name = "complete distortion effect";
-    *inportscount = ioportpairs;
-    *outportscount = ioportpairs;
+    {
+        char namebuff[16];
+        for (unsigned short i = 0; i < ioportpairs; i++)
+        {
+            if (snprintf(namebuff, sizeof(namebuff), "input_%hu", i) < 0)
+            { puts("snprintf formatting error"); goto errorquit_onorafterallocportarrays; }
+            if (!(inports[i] = lapi->addport(namebuff, NULL, DSPPortDirection_Input, 0)))
+            { printf("unable to create input port with name \"%s\"\n", namebuff); goto errorquit_onorafterallocportarrays; }
+
+            if (snprintf(namebuff, sizeof(namebuff), "output_%hu", i) < 0)
+            { puts("snprintf formatting error"); goto errorquit_onorafterallocportarrays; }
+            if (!(outports[i] = lapi->addport(namebuff, NULL, DSPPortDirection_Output, 0)))
+            { printf("unable to create output port with name \"%s\"\n", namebuff); goto errorquit_onorafterallocportarrays; }
+        }
+    }
+
+    printf("I/O ports pairs: %hu\nincutthreshold: %f\ninamod: %f\ninvmod: %f\nminval: %f\nmaxval: %f\noutamod: %f\noutvmod: %f\n",
+        ioportpairs, incutthreshold, inamod, invmod, minval, maxval, outamod, outvmod);
+    *sysname = "distortion";
+    *dispname = "complete distortion effect";
     return 0;
+
+    errorquit_onorafterallocportarrays:
+        free(outports);
+        free(inports);
+    return 1;
 }
 
-unsigned short dspmodule_process(const float * const inbuffers[], float * const outbuffers[], unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime)
+unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime)
 {
     for (unsigned short ch = 0; ch < ioportpairs; ch++)
     {
-        const float *in = inbuffers[ch];
-        float *out = outbuffers[ch];
+        const float *in = lapi->getportbuffer(inports[ch], duration);
+        float *out = lapi->getportbuffer(outports[ch], duration);
         if (!out) continue;
         if (!in) { memset(out, 0, sizeof(float) * duration); continue; }
 
-        for (unsigned long i = 0; i < duration; i++) out[i] = incutthreshold >= 0 && absf(in[i]) <= incutthreshold ? 0 : adjf(clampf(adjf(in[i], inamod) * invmod, minval, maxval), outamod) * outvmod;
+        for (unsigned long i = 0; i < duration; i++)
+            out[i] = (incutthreshold >= 0) && absf(in[i]) <= incutthreshold ? 0 :
+                adjf(clampf(adjf(in[i], inamod) * invmod, minval, maxval), outamod) * outvmod;
     }
 
     return 0;
 }
 
-void dspmodule_cleanup(void) {}
+void dspmodule_cleanup(void)
+{
+    free(outports);
+    free(inports);
+}

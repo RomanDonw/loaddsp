@@ -9,10 +9,11 @@
 
 static unsigned short freq = 0;
 static float volmod = 0.5, lastsample;
+static void *outport = NULL;
 
 static inline float rndf(void);
 
-unsigned short dspmodule_startup(const char **name, unsigned short *inportscount, unsigned short *outportscount, int argc, char * const argv[])
+unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
 {
     {
         int p;
@@ -32,31 +33,32 @@ unsigned short dspmodule_startup(const char **name, unsigned short *inportscount
     }
 
     srand(time(NULL));
+    if (freq) lastsample = rndf() * volmod;
 
-    lastsample = rndf() * volmod;
+    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { puts("error creating output port"); return 1; }
 
-    *name = "noise generator";
-    *inportscount = 0;
-    *outportscount = 1;
+    *sysname = "noisegen";
+    *dispname = "noise generator";
     return 0;
 }
 
-unsigned short dspmodule_process(const float * const inbuffers[], float * const outbuffers[], unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime)
+unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime)
 {
-    if (!(outbuffers[0] && rate)) return 0;
+    float *out = lapi->getportbuffer(outport, duration);
+    if (!(out && rate)) return 0;
 
     if (freq)
     {
-        unsigned long long halfrate = rate / 2;
+        register unsigned long long halfrate = rate / 2;
         register unsigned long long fragscount = rate / (freq > halfrate ? halfrate : freq);
 
         for (unsigned long i = 0; i < duration; i++)
         {
             if (!((position + i) % fragscount)) lastsample = rndf() * volmod;
-            outbuffers[0][i] = lastsample;
+            out[i] = lastsample;
         }
     }
-    else for (unsigned long i = 0; i < duration; i++) outbuffers[0][i] = rndf() * volmod;
+    else for (unsigned long i = 0; i < duration; i++) out[i] = rndf() * volmod;
 
     return 0;
 }
