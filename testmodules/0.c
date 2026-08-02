@@ -49,12 +49,12 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
         {
             if (snprintf(namebuff, sizeof(namebuff), "input_%hu", i) < 0)
             { puts("snprintf formatting error"); goto errorquit_onorafterallocportarrays; }
-            if (!(inports[i] = lapi->addport(namebuff, DSPPortDirection_Input, 0)))
+            if (!(inports[i] = lapi->addport(namebuff, NULL, DSPPortDirection_Input, 0)))
             { printf("unable to create input port with name \"%s\"\n", namebuff); goto errorquit_onorafterallocportarrays; }
 
             if (snprintf(namebuff, sizeof(namebuff), "output_%hu", i) < 0)
             { puts("snprintf formatting error"); goto errorquit_onorafterallocportarrays; }
-            if (!(outports[i] = lapi->addport(namebuff, DSPPortDirection_Output, 0)))
+            if (!(outports[i] = lapi->addport(namebuff, NULL, DSPPortDirection_Output, 0)))
             { printf("unable to create output port with name \"%s\"\n", namebuff); goto errorquit_onorafterallocportarrays; }
         }
     }

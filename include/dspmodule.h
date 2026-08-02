@@ -16,20 +16,22 @@ struct DSPLoaderAPI
 {
     const char *(*getfiltersysname)(void);
     const char *(*getfilterdispname)(void);
-    void (*setfilterdispname)(const char *);
+    void (*setfilterdispname)(const char *dispname);
 
-    void *(*addport)(const char *, const char *, DSPPortDirection, size_t); // returns NULL on error. second & forth parameters can be zero.
-    void (*removeport)(void *);
-    const char *(*getportsysname)(void *);
-    const char *(*getportdispname)(void *);
-    void (*setportdispname)(void *, const char *);
-    float *(*getportbuffer)(void *, unsigned long); // returns NULL if buffer isn't available.
+    // [addport]: returns NULL on error. 'dispname' can be NULL and 'userdatasize' can be equal to zero.
+    void *(*addport)(const char *sysname, const char *dispname, DSPPortDirection dir, size_t userdatasize);
+    void (*removeport)(void *port);
+    const char *(*getportsysname)(void *port);
+    const char *(*getportdispname)(void *port);
+    void (*setportdispname)(void *port, const char *dispname);
+    float *(*getportbuffer)(void *port, unsigned long samplescount); // returns NULL if buffer isn't available.
 } typedef DSPLoaderAPI;
 
 typedef unsigned short DSPModuleStartupFunctionPrototype(const DSPLoaderAPI *, int argc, char * const argv[], const char **sysname, const char **dispname);
 typedef unsigned short DSPModuleProcessFunctionPrototype(const DSPLoaderAPI *, unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime);
 typedef void DSPModuleCleanupFunctionPrototype(void);
 
+// [dspmodule_startup]: 'dispname' is not required to be set.
 DSPMODULE_API DSPModuleStartupFunctionPrototype dspmodule_startup;
 DSPMODULE_API DSPModuleProcessFunctionPrototype dspmodule_process;
 DSPMODULE_API DSPModuleCleanupFunctionPrototype dspmodule_cleanup;

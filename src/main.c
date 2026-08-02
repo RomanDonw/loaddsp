@@ -214,7 +214,6 @@ void *lapif_addport(const char *sysname, const char *dispname, DSPPortDirection 
     if (!props) return NULL;
 
     void *ret = pw_filter_add_port(filter, dir, PW_FILTER_PORT_FLAG_MAP_BUFFERS, 0, props, NULL, 0);
-    pw_properties_free(props); 
     if (!ret) return NULL;
 
     return ret;
