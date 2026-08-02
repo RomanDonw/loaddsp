@@ -9,7 +9,7 @@
 
 static unsigned short freq = 0;
 static float volmod = 0.5, lastsample;
-static void *outport = NULL;
+static void *outport;
 
 static inline float rndf(void);
 
