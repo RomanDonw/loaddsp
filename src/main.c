@@ -7,6 +7,7 @@
 
 #include <pipewire/pipewire.h>
 #include <pipewire/filter.h>
+#include <pipewire/impl-port.h>
 
 #include <spa/pod/builder.h>
 #include <spa/param/latency-utils.h>
@@ -18,20 +19,27 @@ static struct pw_main_loop *mainloop = NULL;
 static struct pw_filter *filter = NULL;
 static DSPModuleProcessFunctionPrototype *modfunc_process;
 
+const char *lapif_getfiltersysname(void);
 const char *lapif_getfilterdispname(void);
 void lapif_setfilterdispname(const char *name);
+
 void *lapif_addport(const char *sysname, const char *dispname, DSPPortDirection direction, size_t userdatasize);
 bool lapif_removeport(void *port);
+const char *lapif_getportsysname(void *port);
+const char *lapif_getportdispname(void *port);
+void lapif_setportdispname(void *port, const char *dispname);
 
 static DSPLoaderAPI lapi_startup =
 {
+    .getfiltersysname = lapif_getfiltersysname,
     .getfilterdispname = lapif_getfilterdispname,
     .setfilterdispname = lapif_setfilterdispname,
 
     .addport = lapif_addport,
     .removeport = (void (*)(void *))pw_filter_remove_port,
-    //.getportname = ,
-    //.setportname = ,
+    .getportsysname = lapif_getportsysname,
+    .getportdispname = lapif_getportdispname,
+    .setportdispname = lapif_setportdispname
 };
 static DSPLoaderAPI lapi_process = { .getportbuffer = (float *(*)(void *, unsigned long))pw_filter_get_dsp_buffer };
 
@@ -82,12 +90,12 @@ int main(int argc, char *argv[])
     if (!(pw_loop_add_signal(loop, SIGINT, quitsignal, NULL) && pw_loop_add_signal(loop, SIGTERM, quitsignal, NULL))) goto errorquit_aftercreatemainloop;
 
     struct pw_properties *props = pw_properties_new(
-        PW_KEY_MEDIA_TYPE, "Audio",
-        PW_KEY_MEDIA_CATEGORY, "Filter",
-        PW_KEY_MEDIA_ROLE, "DSP",
-        "node.passive", "true",
-        "wireplumber.policy", "disabled",
-    NULL);
+            PW_KEY_MEDIA_TYPE, "Audio",
+            PW_KEY_MEDIA_CATEGORY, "Filter",
+            PW_KEY_MEDIA_ROLE, "DSP",
+            "node.passive", "true",
+            "wireplumber.policy", "disabled",
+        NULL);
     if (!props) goto errorquit_aftercreatemainloop;
     filter = pw_filter_new_simple(loop, NULL, props, &filterevents, NULL);
     if (!filter) { pw_properties_free(props); goto errorquit_aftercreatemainloop; }
@@ -174,8 +182,8 @@ const char *lapif_getfilterdispname(void)
 void lapif_setfilterdispname(const char *name)
 {
     struct spa_dict_item dictitem = SPA_DICT_ITEM_INIT(PW_KEY_NODE_DESCRIPTION, name);
-    struct spa_dict props = SPA_DICT_INIT(&dictitem, 1);
-    pw_filter_update_properties(filter, NULL, &props);
+    struct spa_dict propsdict = SPA_DICT_INIT(&dictitem, 1);
+    pw_filter_update_properties(filter, NULL, &propsdict);
 }
 
 void *lapif_addport(const char *sysname, const char *dispname, DSPPortDirection direction, size_t userdatasize)
@@ -199,10 +207,10 @@ void *lapif_addport(const char *sysname, const char *dispname, DSPPortDirection 
     }
 
     struct pw_properties *props = pw_properties_new(
-        PW_KEY_FORMAT_DSP, "32 bit float mono audio",
-        PW_KEY_PORT_NAME, sysname,
-        PW_KEY_PORT_ALIAS, dispname,
-    NULL);
+            PW_KEY_FORMAT_DSP, "32 bit float mono audio",
+            PW_KEY_PORT_NAME, sysname,
+            PW_KEY_PORT_ALIAS, dispname,
+        NULL);
     if (!props) return NULL;
 
     void *ret = pw_filter_add_port(filter, dir, PW_FILTER_PORT_FLAG_MAP_BUFFERS, 0, props, NULL, 0);
@@ -212,15 +220,16 @@ void *lapif_addport(const char *sysname, const char *dispname, DSPPortDirection 
     return ret;
 }
 
-const char *lapi_getportsysname(void *port)
+const char *lapif_getportsysname(void *port)
 { return spa_dict_lookup(&(pw_filter_get_properties(filter, port ? port : (void *)1 /* protection from passing NULL. */))->dict, PW_KEY_PORT_NAME); }
 
-const char *lapi_getportdispname(void *port)
+const char *lapif_getportdispname(void *port)
 { return spa_dict_lookup(&(pw_filter_get_properties(filter, port ? port : (void *)1 /* protection from passing NULL. */))->dict, PW_KEY_PORT_ALIAS); }
 
-const char *lapi_setportdispname(void *port, const char *dispname)
+void lapif_setportdispname(void *port, const char *dispname)
 {
     struct spa_dict_item dictitem = SPA_DICT_ITEM_INIT(PW_KEY_PORT_ALIAS, dispname);
-    struct spa_dict props = SPA_DICT_INIT(&dictitem, 1);
-    pw_filter_update_properties(filter, port ? port : (void *)1, &props);
+    struct spa_dict propsdict = SPA_DICT_INIT(&dictitem, 1);
+    pw_filter_update_properties(filter, port ? port : (void *)1 /* protection from passing NULL. */, &propsdict);
+    pw_impl_port_update_properties(port ? port : (void *)1, &propsdict);
 }

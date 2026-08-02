@@ -14,11 +14,13 @@ enum DSPPortDirection
 
 struct DSPLoaderAPI
 {
+    const char *(*getfiltersysname)(void);
     const char *(*getfilterdispname)(void);
     void (*setfilterdispname)(const char *);
 
     void *(*addport)(const char *, const char *, DSPPortDirection, size_t); // returns NULL on error. second & forth parameters can be zero.
     void (*removeport)(void *);
+    const char *(*getportsysname)(void *);
     const char *(*getportdispname)(void *);
     void (*setportdispname)(void *, const char *);
     float *(*getportbuffer)(void *, unsigned long); // returns NULL if buffer isn't available.
