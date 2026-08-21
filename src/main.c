@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 
     // ===============================================================
 
-    if (pw_filter_connect(filter, 0, NULL, 0)) { fputs("error connecting filter.", stderr); goto errorquit_aftermodulestartup; }
+    if (pw_filter_connect(filter, 0, NULL, 0)) { fputs("error connecting filter.\n", stderr); goto errorquit_aftermodulestartup; }
 
     exitcode = 0;
     pw_main_loop_run(mainloop);
