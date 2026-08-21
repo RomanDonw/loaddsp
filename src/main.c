@@ -195,17 +195,14 @@ void lapif_setfilterdispname(const char *name)
 void *lapif_addport(const char *sysname, const char *dispname, DSPPortDirection direction, size_t userdatasize)
 {
     enum pw_direction dir;
-    const char *strdir;
     switch (direction)
     {
         case DSPPortDirection_Input:
             dir = PW_DIRECTION_INPUT;
-            strdir = "input";
             break;
 
         case DSPPortDirection_Output:
             dir = PW_DIRECTION_OUTPUT;
-            strdir = "output";
             break;
 
         default:

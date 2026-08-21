@@ -45,7 +45,7 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
         { printf("unable to create output port with name \"%s\"\n", namebuff); goto errorquit_afteralloc; }
     }
 
-    printf("Output ports: %hu\n", outports);
+    printf("Output ports: %hu\n", outportscount);
     *sysname = "multitarget";
     return 0;
 
