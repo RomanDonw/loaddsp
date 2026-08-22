@@ -19,12 +19,15 @@ static void *outportl, *outportr;
 static openmpt_module *mod;
 static bool quitonsongend = true;
 
+static void dummycallback(void) {}
+
 unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
 {
     char *infilepath = NULL;
+    int repeatcount = -1;
     {
         int p;
-        while ((p = getopt(argc, argv, "a:v:f:s")) != -1)
+        while ((p = getopt(argc, argv, "a:v:f:sl:")) != -1)
         {
             switch (p)
             {
@@ -40,8 +43,13 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
                     infilepath = optarg;
                     break;
 
-                case 's':
+                case 's': // suppress quitting/stay connected.
                     quitonsongend = false;
+                    break;
+
+                case 'l':
+                    if (sscanf(optarg, "%i", &repeatcount) < 0) { puts("error parsing option -l"); return 1; }
+                    if (repeatcount < 0) repeatcount = -1;
                     break;
             }
         }
@@ -72,32 +80,44 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
 
     fclose(f);
 
-    mod = openmpt_module_create_from_memory2(infiledata, infilesize, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+    const char *errmsg = NULL;
+    mod = openmpt_module_create_from_memory2(infiledata, infilesize, (void *)dummycallback, NULL, (void *)dummycallback, NULL, NULL, &errmsg, NULL);
     free(infiledata);
-    if (!mod) { puts("error reading passed tracker music module file"); return 1; }
+    if (!mod) { printf("failed to parse specified tracker music file: %s\n", errmsg); return 1; }
 
-    openmpt_module_set_repeat_count(mod, -1);
+    openmpt_module_set_repeat_count(mod, repeatcount);
 
-    printf("in file: \"%s\"\nampmod: %f\nvolmod: %f\n", infilepath, ampmod, volmod);
+    printf("in file: \"%s\"\nampmod: %f\nvolmod: %f\nquitonsongend: %s\n", infilepath, ampmod, volmod, quitonsongend ? "yes" : "no");
+    if (repeatcount < 0) puts("repeat count: forever");
+    else if (!repeatcount) puts("repeat count: play once");
+    else printf("repeat count: %i\n", repeatcount);
+
     *sysname = "trackmusicplayer";
     *dispname = "looped track music player";
     return 0;
 }
 
-unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime)       
+unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime)
 {
-    register float *leftch = lapi->getportbuffer(outportl, duration);
+    float *leftch = lapi->getportbuffer(outportl, duration);
     if (!leftch) return 0;
-    register float *rightch = lapi->getportbuffer(outportr, duration);
+    float *rightch = lapi->getportbuffer(outportr, duration);
     if (!rightch) return 0;
 
     size_t frames = openmpt_module_read_float_stereo(mod, rate, duration, leftch, rightch);
     if (frames < duration)
     {
         memset(&leftch[frames], 0, (duration - frames) * sizeof(float));
-        if (quitonsongend) return 1;
+        memset(&rightch[frames], 0, (duration - frames) * sizeof(float));
     }
-
+    
+    for (unsigned long long i = 0; i < duration; i++)
+    {
+        leftch[i] = adjf(leftch[i], ampmod) * volmod;
+        rightch[i] = adjf(rightch[i], ampmod) * volmod;
+    }
+    
+    if (!frames && quitonsongend) return 1;
     return 0;
 }
 
