@@ -99,8 +99,6 @@ int main(int argc, char *argv[])
             PW_KEY_MEDIA_TYPE, "Audio",
             PW_KEY_MEDIA_CATEGORY, "Filter",
             PW_KEY_MEDIA_ROLE, "DSP",
-            "node.passive", "true",
-            "wireplumber.policy", "disabled",
         NULL);
     if (!props) goto errorquit_aftercreatemainloop;
     filter = pw_filter_new_simple(loop, NULL, props, &filterevents, NULL);
