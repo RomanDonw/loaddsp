@@ -83,7 +83,12 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     const char *errmsg = NULL;
     mod = openmpt_module_create_from_memory2(infiledata, infilesize, (void *)dummycallback, NULL, (void *)dummycallback, NULL, NULL, &errmsg, NULL);
     free(infiledata);
-    if (!mod) { printf("failed to parse specified tracker music file: %s\n", errmsg); return 1; }
+    if (!mod)
+    {
+        printf("failed to parse specified tracker music file: %s\n", errmsg);
+        openmpt_free_string(errmsg);
+        return 1;
+    }
 
     openmpt_module_set_repeat_count(mod, repeatcount);
 
