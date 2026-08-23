@@ -27,6 +27,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::PipeWire)
 # =============================================
 
 install(DIRECTORY "include/" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # =============================================
 
