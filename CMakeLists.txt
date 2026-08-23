@@ -2,11 +2,9 @@
 cmake_minimum_required(VERSION 3.23)
 project(loaddsp LANGUAGES C)
 
-option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
-
-#set(CMAKE_C_STANDARD 99)
-#set(CMAKE_C_STANDARD_REQUIRED ON)
-#set(CMAKE_C_EXTENSIONS OFF)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS ON) # required for POSIX.1-2008 extension that required by PipeWire SPA.
 
 # =============================================
 
