@@ -36,6 +36,7 @@ typedef unsigned short DSPModuleStartupFunctionPrototype(const DSPLoaderAPI *, i
 typedef unsigned short DSPModuleProcessFunctionPrototype(const DSPLoaderAPI *, unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime);
 typedef void DSPModuleCleanupFunctionPrototype(void);
 
+DSPMODULE_API extern const unsigned short dspmodule_requiredAPIversion;
 // [dspmodule_startup]: 'dispname' is not required to be set.
 DSPMODULE_API DSPModuleStartupFunctionPrototype dspmodule_startup;
 DSPMODULE_API DSPModuleProcessFunctionPrototype dspmodule_process;
@@ -63,5 +64,8 @@ static inline float adjf(float in, float adj) // adjunctf.
     if (adj < 0 && absf(in) < absf(adj)) return 0;
     return in + adj * signf(in);
 }
+
+static inline float lerpf(float from, float to, float factor)
+{ return from + (to - from) * clampf(factor, 0, 1); }
 
 #endif

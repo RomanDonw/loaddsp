@@ -11,6 +11,8 @@
 #include <getopt.h>
 #include <stdbool.h>
 
+const unsigned short dspmodule_requiredAPIversion = 0;
+
 static unsigned short freq = 0;
 static float minvalue = -1, maxvalue = 1, volmod = 0.1;
 static void *outport = NULL;

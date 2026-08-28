@@ -11,6 +11,8 @@
 #include <string.h>
 #include <getopt.h>
 
+const unsigned short dspmodule_requiredAPIversion = 0;
+
 static unsigned short ioportpairs = 0;
 static float amplitudemodifier = 0, volumemodifier = 1;
 static void **inports = NULL, **outports = NULL;

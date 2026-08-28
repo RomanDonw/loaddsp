@@ -35,6 +35,9 @@ const char *lapif_getportsysname(void *port);
 const char *lapif_getportdispname(void *port);
 void lapif_setportdispname(void *port, const char *dispname);
 
+#define LOADERAPIVERSION 0
+#define LOADERAPIVERSION_STR "0"
+
 static DSPLoaderAPI lapi_startup =
 {
     .getfiltersysname = lapif_getfiltersysname,
@@ -76,6 +79,13 @@ int main(int argc, char *argv[])
 
     void *module = dlopen(argv[1], RTLD_LAZY);
     if (!module) { fprintf(stderr, "dlopen(): %s\n", dlerror()); return -1; }
+
+    {
+        const unsigned short *modreqver = dlsym(module, "dspmodule_requiredAPIversion");
+        if (!modreqver) { fprintf(stderr, "dlsym(\"dspmodule_requiredAPIversion\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
+        if (*modreqver != LOADERAPIVERSION)
+        { fprintf(stderr, "incompatible module version (mod. ver.: %hu, loader ver.: " LOADERAPIVERSION_STR ")\n", *modreqver); goto errorquit_afteropenmodule; }
+    }
 
     DSPModuleStartupFunctionPrototype *modfunc_startup = dlsym(module, "dspmodule_startup");
     if (!modfunc_startup) { fprintf(stderr, "dlsym(\"dspmodule_startup\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }

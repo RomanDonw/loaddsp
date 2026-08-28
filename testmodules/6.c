@@ -11,6 +11,8 @@
 #include <getopt.h>
 #include <stdlib.h>
 
+const unsigned short dspmodule_requiredAPIversion = 0;
+
 static unsigned short outportscount = 0;
 static void *inport, **outports = NULL;
 

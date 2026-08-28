@@ -11,6 +11,8 @@
 #include <getopt.h>
 #include <stdlib.h>
 
+const unsigned short dspmodule_requiredAPIversion = 0;
+
 static unsigned short ioportpairs = 0;
 static float incutthreshold = 0, inamod = 0.5, invmod = 1, minval = -0.5, maxval = 0.5, outamod = 0, outvmod = 0.1;
 static void **inports = NULL, **outports = NULL;

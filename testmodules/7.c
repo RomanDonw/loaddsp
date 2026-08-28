@@ -13,6 +13,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+const unsigned short dspmodule_requiredAPIversion = 0;
+
 static float ampmod = 0, volmod = 0.1;
 static void *infiledata, *outport;
 static size_t infilesize;

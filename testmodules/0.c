@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <getopt.h>
 
+const unsigned short dspmodule_requiredAPIversion = 0;
+
 static unsigned short ioportpairs = 0;
 static float minvalue = -1, maxvalue = 1;
 static void **inports = NULL, **outports = NULL;

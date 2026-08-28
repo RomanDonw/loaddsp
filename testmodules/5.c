@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+const unsigned short dspmodule_requiredAPIversion = 0;
+
 static unsigned short freq = 0;
 static float volmod = 0.5, lastsample;
 static void *outport;
