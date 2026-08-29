@@ -66,8 +66,8 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     }
 
     printf("I/O ports pairs: %hu\namplitude modifier: %f\nvolume modifier: %f\n", ioportpairs, amplitudemodifier, volumemodifier);
-    *sysname = "ampvolmod";
-    *dispname = "amplitude/volume modifier";
+    *sysname = "slower";
+    *dispname = "audio stream slower";
     return 0;
 
     errorquit_onorafterallocportarrays:
@@ -76,16 +76,30 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     return 1;
 }
 
+#define COEFF 2
+
 unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime)
 {
-    for (unsigned char ch = 0; ch < ioportpairs; ch++)
+    for (unsigned short ch = 0; ch < ioportpairs; ch++)
     {
         const float *in = lapi->getportbuffer(inports[ch], duration);
         float *out = lapi->getportbuffer(outports[ch], duration);
         if (!out) continue;
         if (!in) { memset(out, 0, sizeof(float) * duration); continue; }
         
-        for (unsigned long i = 0; i < duration; i++) out[i] = adjf(in[i], amplitudemodifier) * volumemodifier;
+        for (unsigned long i = 0; i < duration; i++)
+        {
+            float v = i & 8 ? 0 : in[i];
+            //if (i / COEFF == duration / COEFF - 1) v = in[i];
+            //else v = lerpf(in[i % COEFF], in[i % COEFF + COEFF], (i % COEFF) / (float)COEFF);
+            
+            out[i] = adjf(v, amplitudemodifier) * volumemodifier;
+
+            //out[i] = adjf(
+            //    ((i & 1) && !(i & (~1) < (duration - 1) & (~1))) ? lerpf(in[i - 1], in[i + 1], 0.5) : in[i],
+            //amplitudemodifier) * volumemodifier;
+            // ((i & 1) && (i & (~1) < (duration - 1) & (~1))) ? lerpf(in[i - 1], in[i + 1], 0.5) : in[i];
+        }
     }
 
     return 0;
