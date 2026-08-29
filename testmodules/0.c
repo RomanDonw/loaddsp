@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 
-const unsigned short dspmodule_requiredAPIversion = 0;
+const unsigned short dspmodule_requiredAPIversion = 1;
 
 static unsigned short ioportpairs = 0;
 static float minvalue = -1, maxvalue = 1;
@@ -76,7 +76,7 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     return 1;
 }
 
-unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime)
+unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime)
 {
     for (unsigned short ch = 0; ch < ioportpairs; ch++)
     {

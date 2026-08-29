@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-const unsigned short dspmodule_requiredAPIversion = 0;
+const unsigned short dspmodule_requiredAPIversion = 1;
 
 static float ampmod = 0, volmod = 0.1;
 static void *infiledata, *outport;
@@ -78,7 +78,7 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     return 0;
 }
 
-unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long long duration, unsigned long rate, unsigned long long nsectime)
+unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime)
 {
     float *out = lapi->getportbuffer(outport, duration);
     if (!out) return 0;

@@ -10,6 +10,7 @@
 #include <string.h>
 #include <dlfcn.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #include <pipewire/pipewire.h>
 #include <pipewire/filter.h>
@@ -35,8 +36,8 @@ const char *lapif_getportsysname(void *port);
 const char *lapif_getportdispname(void *port);
 void lapif_setportdispname(void *port, const char *dispname);
 
-#define LOADERAPIVERSION 0
-#define LOADERAPIVERSION_STR "0"
+#define LOADERAPIVERSION 1
+#define LOADERAPIVERSION_STR "1"
 
 static DSPLoaderAPI lapi_startup =
 {
@@ -152,7 +153,16 @@ int main(int argc, char *argv[])
 
 static void procdsp(void *userdata, struct spa_io_position *position)
 {
-    unsigned short ret = modfunc_process(&lapi_process, position->clock.position, position->clock.duration, position->clock.rate.denom, position->clock.nsec);
+    uint32_t duration;
+    if (position->clock.duration > UINT32_MAX)
+    {
+        duration = UINT32_MAX;
+        printf("too big size of current cycle (position: %llu, duration: %llu, max duration: 2 ^ 32 - 1). processing only 2 ^ 32 - 1 samples.\n",
+            position->clock.position, position->clock.duration);
+    }
+    else duration = position->clock.duration;
+
+    unsigned short ret = modfunc_process(&lapi_process, position->clock.position, duration, position->clock.rate.denom, position->clock.nsec);
     if (ret) { exitcode = ret; pw_main_loop_quit(mainloop); }
 }
 
