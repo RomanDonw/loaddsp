@@ -78,7 +78,7 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
 
 unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime)
 {
-    for (unsigned char ch = 0; ch < ioportpairs; ch++)
+    for (unsigned short ch = 0; ch < ioportpairs; ch++)
     {
         const float *in = lapi->getportbuffer(inports[ch], duration);
         float *out = lapi->getportbuffer(outports[ch], duration);
