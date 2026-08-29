@@ -14,14 +14,15 @@
 const unsigned short dspmodule_requiredAPIversion = 1;
 
 static unsigned short ioportpairs = 0;
-static float amplitudemodifier = 0, volumemodifier = 1;
+static float amplitudemodifier = 0, volumemodifier = 1, placeholdervalue = 0;
+static unsigned long denom = 0;
 static void **inports = NULL, **outports = NULL;
 
 unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
 {
     {
         int p;
-        while ((p = getopt(argc, argv, "a:p:v:")) != -1)
+        while ((p = getopt(argc, argv, "a:p:v:d:h:")) != -1)
         {
             switch (p)
             {
@@ -36,11 +37,20 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
                 case 'p':
                     if (sscanf(optarg, "%hu", &ioportpairs) < 1) { puts("error parsing option -p"); return 1; }
                     break;
+
+                case 'd':
+                    if (sscanf(optarg, "%lu", &denom) < 1) { puts("error parsing option -d"); return 1; }
+                    break;
+
+                case 'h':
+                    if (sscanf(optarg, "%f", &placeholdervalue) < 1) { puts("error parsing option -h"); return 1; }
+                    break;
             }
         }
     }
 
     if (!ioportpairs) { puts("specify at least one I/O ports pair through -p parameter"); return 1; }
+    if (!denom) { puts("denominator must be greater/not equal to 0"); return 1; }
 
     {
         register size_t portarrsize = ioportpairs * sizeof(void *);
@@ -65,9 +75,10 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
         }
     }
 
-    printf("I/O ports pairs: %hu\namplitude modifier: %f\nvolume modifier: %f\n", ioportpairs, amplitudemodifier, volumemodifier);
-    *sysname = "slower";
-    *dispname = "audio stream slower";
+    printf("I/O ports pairs: %hu\namplitude modifier: %f\nvolume modifier: %f\nplaceholder value: %f\ndenominator: %lu\n",
+        ioportpairs, amplitudemodifier, volumemodifier, placeholdervalue, denom);
+    *sysname = "nsamplesaves";
+    *dispname = "n-sample saver"; // idk how correct name it.
     return 0;
 
     errorquit_onorafterallocportarrays:
@@ -75,8 +86,6 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
         free(inports);
     return 1;
 }
-
-#define COEFF 2
 
 unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime)
 {
@@ -87,19 +96,7 @@ unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long po
         if (!out) continue;
         if (!in) { memset(out, 0, sizeof(float) * duration); continue; }
         
-        for (unsigned long i = 0; i < duration; i++)
-        {
-            float v = i & 8 ? 0 : in[i];
-            //if (i / COEFF == duration / COEFF - 1) v = in[i];
-            //else v = lerpf(in[i % COEFF], in[i % COEFF + COEFF], (i % COEFF) / (float)COEFF);
-            
-            out[i] = adjf(v, amplitudemodifier) * volumemodifier;
-
-            //out[i] = adjf(
-            //    ((i & 1) && !(i & (~1) < (duration - 1) & (~1))) ? lerpf(in[i - 1], in[i + 1], 0.5) : in[i],
-            //amplitudemodifier) * volumemodifier;
-            // ((i & 1) && (i & (~1) < (duration - 1) & (~1))) ? lerpf(in[i - 1], in[i + 1], 0.5) : in[i];
-        }
+        for (unsigned long i = 0; i < duration; i++) out[i] = adjf((position + i) % denom ? placeholdervalue : in[i], amplitudemodifier) * volumemodifier;
     }
 
     return 0;
