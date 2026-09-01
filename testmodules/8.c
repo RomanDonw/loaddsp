@@ -91,9 +91,9 @@ unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long po
 {
     for (unsigned short ch = 0; ch < ioportpairs; ch++)
     {
-        const float *in = lapi->getportbuffer(inports[ch], duration);
         float *out = lapi->getportbuffer(outports[ch], duration);
         if (!out) continue;
+        const float *in = lapi->getportbuffer(inports[ch], duration);
         if (!in) { memset(out, 0, sizeof(float) * duration); continue; }
         
         for (unsigned long i = 0; i < duration; i++) out[i] = adjf((position + i) % denom ? placeholdervalue : in[i], amplitudemodifier) * volumemodifier;

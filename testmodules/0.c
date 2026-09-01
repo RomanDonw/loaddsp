@@ -44,7 +44,7 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     { puts("specify at least one I/O ports pair through -p parameter"); return 1; }
 
     {
-        register size_t portarrsize = ioportpairs * sizeof(void *);
+        size_t portarrsize = ioportpairs * sizeof(void *);
         if (!((inports = malloc(portarrsize)) &&
                 (outports = malloc(portarrsize))))
         { puts("memory allocation failed"); goto errorquit_onorafterallocportarrays; }
@@ -80,9 +80,9 @@ unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long po
 {
     for (unsigned short ch = 0; ch < ioportpairs; ch++)
     {
-        const float *in = lapi->getportbuffer(inports[ch], duration);
         float *out = lapi->getportbuffer(outports[ch], duration);
         if (!out) continue;
+        const float *in = lapi->getportbuffer(inports[ch], duration);
         if (!in) { memset(out, 0, sizeof(float) * duration); continue; }
 
         for (unsigned long i = 0; i < duration; i++) out[i] = clampf(in[i], minvalue, maxvalue);

@@ -58,10 +58,10 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
 
 unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime)
 {
-    register const float *in = lapi->getportbuffer(inport, duration);
+    const float *in = lapi->getportbuffer(inport, duration);
     for (unsigned short i = 0; i < outportscount; i++)
     {
-        register float *out = lapi->getportbuffer(outports[i], duration);
+        float *out = lapi->getportbuffer(outports[i], duration);
         if (!out) continue;
         if (!in) { memset(out, 0, sizeof(float) * duration); continue; }
 

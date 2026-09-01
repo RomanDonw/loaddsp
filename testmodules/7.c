@@ -85,11 +85,7 @@ unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long po
 
     for (unsigned long i = 0; i < duration; i++)
     {
-        if (useu8)
-        {
-            register uint8_t v = ((uint8_t *)infiledata)[(position + i) % infilesize];
-            out[i] = adjf(v / (float)255, ampmod) * volmod;
-        }
+        if (useu8) out[i] = adjf(((uint8_t *)infiledata)[(position + i) % infilesize] / (float)255, ampmod) * volmod;
         else
         {
             register int8_t v = ((int8_t *)infiledata)[(position + i) % infilesize];

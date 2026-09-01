@@ -57,8 +57,8 @@ unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long po
 
     if (freq)
     {
-        register unsigned long long halfrate = rate / 2;
-        register unsigned long long fragscount = rate / (freq > halfrate ? halfrate : freq);
+        unsigned long long halfrate = rate / 2;
+        unsigned long long fragscount = rate / (freq > halfrate ? halfrate : freq);
 
         for (unsigned long i = 0; i < duration; i++)
         {
