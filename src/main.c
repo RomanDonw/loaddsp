@@ -4,6 +4,7 @@
     file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -11,6 +12,8 @@
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <getopt.h>
+#include <stdbool.h>
 
 #include <pipewire/pipewire.h>
 #include <pipewire/filter.h>
@@ -56,7 +59,7 @@ static DSPLoaderAPI lapi_process = { .getportbuffer = (float *(*)(void *, unsign
 static void procdsp(void *userdata, struct spa_io_position *position);
 static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_state state, const char *error);
 
-static const struct pw_filter_events filterevents =
+static struct pw_filter_events filterevents =
 {
     PW_VERSION_FILTER_EVENTS,
     .process = procdsp,
@@ -67,18 +70,38 @@ static void quitsignal(void *userdata, int signum)
 { putchar('\n'); pw_main_loop_quit(mainloop); }
 
 static int exitcode = -1;
+static bool quiet = false;
 
 int main(int argc, char *argv[])
 {
-    if (argc < 2)
     {
-        fprintf(stderr, "Too few arguments. Basic command line arguments scheme: %s <path to DSP .so module> [additional args for module].\n", argv[0]);
+        int p;
+        while ((p = getopt(argc, argv, "-q")) != -1)
+        {
+            switch (p)
+            {
+                case 1:
+                    optind--;
+                    goto parseoptsend;
+
+                case 'q':
+                    quiet = true;
+                    break;
+            }
+        }
+    }
+    parseoptsend:
+
+    if (optind >= argc)
+    {
+        fprintf(stderr, "Too few arguments. Basic command line arguments scheme: \n"
+            "\t%s [optional loader parametres] <path to DSP .so module> [additional args for module].\n", argv[0]);
         return -1;
     }
 
     // ===============================================================
 
-    void *module = dlopen(argv[1], RTLD_NOW);
+    void *module = dlmopen(LM_ID_NEWLM, argv[optind], RTLD_NOW);
     if (!module) { fprintf(stderr, "dlopen(): %s\n", dlerror()); return -1; }
 
     {
@@ -112,14 +135,17 @@ int main(int argc, char *argv[])
             PW_KEY_MEDIA_ROLE, "DSP",
         NULL);
     if (!props) goto errorquit_aftercreatemainloop;
-    filter = pw_filter_new_simple(loop, NULL, props, &filterevents, NULL);
-    if (!filter) { pw_properties_free(props); goto errorquit_aftercreatemainloop; }
+    if (quiet) filterevents.state_changed = NULL;
+    if (!(filter = pw_filter_new_simple(loop, NULL, props, &filterevents, NULL)))
+    { pw_properties_free(props); goto errorquit_aftercreatemainloop; }
 
     // ===============================================================
 
     {
         const char *sysname = NULL, *dispname = NULL;
-        unsigned short ret = modfunc_startup(&lapi_startup, argc - 1, &argv[1], &sysname, &dispname);
+        //int firstidx = optind;
+        //RESETGETOPT();
+        unsigned short ret = modfunc_startup(&lapi_startup, argc - optind, &argv[optind], &sysname, &dispname);
         if (ret) { fputs("\nmodule internal initialization error\n", stderr); exitcode = ret; goto errorquit_aftercreatefilter; }
 
         struct spa_dict_item dictitems[2] =
