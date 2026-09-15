@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 
     // ===============================================================
 
-    void *module = dlopen(argv[1], RTLD_LAZY);
+    void *module = dlopen(argv[1], RTLD_NOW);
     if (!module) { fprintf(stderr, "dlopen(): %s\n", dlerror()); return -1; }
 
     {
