@@ -143,8 +143,6 @@ int main(int argc, char *argv[])
 
     {
         const char *sysname = NULL, *dispname = NULL;
-        //int firstidx = optind;
-        //RESETGETOPT();
         unsigned short ret = modfunc_startup(&lapi_startup, argc - optind, &argv[optind], &sysname, &dispname);
         if (ret) { fputs("\nmodule internal initialization error\n", stderr); exitcode = ret; goto errorquit_aftercreatefilter; }
 
