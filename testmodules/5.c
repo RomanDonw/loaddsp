@@ -16,16 +16,16 @@
 const unsigned short dspmodule_requiredAPIversion = 1;
 
 static unsigned short freq = 0;
-static float volmod = 0.5, lastsample;
+static float ampmod = 0, volmod = 0.5, lastsample;
 static void *outport;
 
-static inline float rndf(void);
+static inline float rndf(void) { return (rand() / (float)RAND_MAX) * 2 - 1; }
 
 unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
 {
     {
         int p;
-        while ((p = getopt(argc, argv, "f:v:")) != -1)
+        while ((p = getopt(argc, argv, "f:v:a:")) != -1)
         {
             switch (p)
             {
@@ -36,15 +36,22 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
                 case 'v':
                     if (sscanf(optarg, "%f", &volmod) < 1) { puts("error parsing option -v"); return 1; }
                     break;
+
+                case 'a':
+                    if (sscanf(optarg, "%f", &ampmod) < 1) { puts("error parsing option -a"); return 1; }
+                    break;
             }
         }
     }
 
     srand(time(NULL));
-    if (freq) lastsample = rndf() * volmod;
+    if (freq) lastsample = adjf(rndf(), ampmod) * volmod;
 
     if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { puts("error creating output port"); return 1; }
 
+    if (freq) printf("freq: %hu Hz\n", freq);
+    else puts("freq: (relative to sample rate)");
+    printf("ampmod: %f\nvolmod: %f\n", ampmod, volmod);
     *sysname = "noisegen";
     *dispname = "noise generator";
     return 0;
@@ -62,18 +69,13 @@ unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long po
 
         for (unsigned long i = 0; i < duration; i++)
         {
-            if (!((position + i) % fragscount)) lastsample = rndf() * volmod;
+            if (!((position + i) % fragscount)) lastsample = adjf(rndf(), ampmod) * volmod;
             out[i] = lastsample;
         }
     }
-    else for (unsigned long i = 0; i < duration; i++) out[i] = rndf() * volmod;
+    else for (unsigned long i = 0; i < duration; i++) out[i] = adjf(rndf(), ampmod) * volmod;
 
     return 0;
 }
 
 void dspmodule_cleanup(void) {}
-
-static inline float rndf(void)
-{
-    return (rand() / (float)RAND_MAX) * 2 - 1;
-}
