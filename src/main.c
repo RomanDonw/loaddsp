@@ -17,44 +17,21 @@
 
 #include <pipewire/pipewire.h>
 #include <pipewire/filter.h>
-#include <pipewire/impl-port.h>
 
 #include <spa/pod/builder.h>
 #include <spa/param/latency-utils.h>
 #include <spa/utils/dict.h>
 
 #include "dspmodule.h"
+#include "lapi_startup.h"
+#include "lapi_process.h"
 
 static struct pw_main_loop *mainloop = NULL;
-static struct pw_filter *filter = NULL;
+struct pw_filter *filter = NULL;
 static DSPModuleProcessFunctionPrototype *modfunc_process;
-
-const char *lapif_getfiltersysname(void);
-const char *lapif_getfilterdispname(void);
-void lapif_setfilterdispname(const char *name);
-
-void *lapif_addport(const char *sysname, const char *dispname, DSPPortDirection direction, size_t userdatasize);
-bool lapif_removeport(void *port);
-const char *lapif_getportsysname(void *port);
-const char *lapif_getportdispname(void *port);
-void lapif_setportdispname(void *port, const char *dispname);
 
 #define LOADERAPIVERSION 1
 #define LOADERAPIVERSION_STR "1"
-
-static DSPLoaderAPI lapi_startup =
-{
-    .getfiltersysname = lapif_getfiltersysname,
-    .getfilterdispname = lapif_getfilterdispname,
-    .setfilterdispname = lapif_setfilterdispname,
-
-    .addport = lapif_addport,
-    .removeport = (void (*)(void *))pw_filter_remove_port,
-    .getportsysname = lapif_getportsysname,
-    .getportdispname = lapif_getportdispname,
-    .setportdispname = lapif_setportdispname
-};
-static DSPLoaderAPI lapi_process = { .getportbuffer = (float *(*)(void *, unsigned long))pw_filter_get_dsp_buffer };
 
 static void procdsp(void *userdata, struct spa_io_position *position);
 static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_state state, const char *error);
@@ -219,61 +196,4 @@ static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_stat
             printf("(unknown)");
     }
     puts("')");
-}
-
-const char *lapif_getfiltersysname(void)
-{ return spa_dict_lookup(&(pw_filter_get_properties(filter, NULL)->dict), PW_KEY_NODE_NAME); }
-
-const char *lapif_getfilterdispname(void)
-{ return spa_dict_lookup(&(pw_filter_get_properties(filter, NULL)->dict), PW_KEY_NODE_DESCRIPTION); }
-
-void lapif_setfilterdispname(const char *name)
-{
-    struct spa_dict_item dictitem = SPA_DICT_ITEM_INIT(PW_KEY_NODE_DESCRIPTION, name);
-    struct spa_dict propsdict = SPA_DICT_INIT(&dictitem, 1);
-    pw_filter_update_properties(filter, NULL, &propsdict);
-}
-
-void *lapif_addport(const char *sysname, const char *dispname, DSPPortDirection direction, size_t userdatasize)
-{
-    enum pw_direction dir;
-    switch (direction)
-    {
-        case DSPPortDirection_Input:
-            dir = PW_DIRECTION_INPUT;
-            break;
-
-        case DSPPortDirection_Output:
-            dir = PW_DIRECTION_OUTPUT;
-            break;
-
-        default:
-            return NULL;
-    }
-
-    struct pw_properties *props = pw_properties_new(
-            PW_KEY_FORMAT_DSP, "32 bit float mono audio",
-            PW_KEY_PORT_NAME, sysname,
-            PW_KEY_PORT_ALIAS, dispname,
-        NULL);
-    if (!props) return NULL;
-
-    void *ret = pw_filter_add_port(filter, dir, PW_FILTER_PORT_FLAG_MAP_BUFFERS, 0, props, NULL, 0);
-    if (!ret) return NULL;
-
-    return ret;
-}
-
-const char *lapif_getportsysname(void *port)
-{ return spa_dict_lookup(&(pw_filter_get_properties(filter, port ? port : (void *)1 /* protection from passing NULL. */))->dict, PW_KEY_PORT_NAME); }
-
-const char *lapif_getportdispname(void *port)
-{ return spa_dict_lookup(&(pw_filter_get_properties(filter, port ? port : (void *)1 /* protection from passing NULL. */))->dict, PW_KEY_PORT_ALIAS); }
-
-void lapif_setportdispname(void *port, const char *dispname)
-{
-    struct spa_dict_item dictitem = SPA_DICT_ITEM_INIT(PW_KEY_PORT_ALIAS, dispname);
-    struct spa_dict propsdict = SPA_DICT_INIT(&dictitem, 1);
-    pw_filter_update_properties(filter, port ? port : (void *)1 /* protection from passing NULL. */, &propsdict);
-    pw_impl_port_update_properties(port ? port : (void *)1, &propsdict);
 }
