@@ -17,6 +17,12 @@ enum DSPPortDirection
     DSPPortDirection_Output = 1
 } typedef DSPPortDirection;
 
+enum DSPState
+{
+    DSPState_Paused = 0,
+    DSPState_Streaming = 1
+} typedef DSPState;
+
 struct DSPLoaderAPI
 {
     const char *(*getfiltersysname)(void);
@@ -35,12 +41,14 @@ struct DSPLoaderAPI
 typedef unsigned short DSPModuleStartupFunctionPrototype(const DSPLoaderAPI *, int argc, char * const argv[], const char **sysname, const char **dispname);
 typedef unsigned short DSPModuleProcessFunctionPrototype(const DSPLoaderAPI *, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime);
 typedef void DSPModuleCleanupFunctionPrototype(void);
+typedef unsigned short DSPModuleStateChangedFunctionPrototype(const DSPLoaderAPI *, DSPState prevstate, DSPState currstate);
 
 DSPMODULE_API extern const unsigned short dspmodule_requiredAPIversion;
 // [dspmodule_startup]: 'dispname' is not required to be set.
 DSPMODULE_API DSPModuleStartupFunctionPrototype dspmodule_startup;
 DSPMODULE_API DSPModuleProcessFunctionPrototype dspmodule_process;
 DSPMODULE_API DSPModuleCleanupFunctionPrototype dspmodule_cleanup;
+DSPMODULE_API DSPModuleStateChangedFunctionPrototype dspmodule_statechanged;
 
 static inline float clampf(float in, float min, float max)
 {
@@ -56,7 +64,7 @@ static inline float signf(float in)
     return 0;
 }
 
-#define absf(in) (((float)in) < 0 ? -((float)in) : ((float)in))
+static inline float absf(float in) { return in < 0 ? -in : in; }
 
 static inline float adjf(float in, float adj) // adjunctf.
 {

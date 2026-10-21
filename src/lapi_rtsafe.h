@@ -4,13 +4,11 @@
     file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */
 
-#ifndef LAPI_STARTUP_H
-#define LAPI_STARTUP_H
-
-#include <stdbool.h>
+#ifndef LAPI_RTSAFE_H
+#define LAPI_RTSAFE_H
 
 #include "dspmodule.h"
 
-extern const DSPLoaderAPI lapi_startup;
+extern const DSPLoaderAPI lapi_rtsafe;
 
 #endif

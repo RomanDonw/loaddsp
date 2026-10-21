@@ -4,11 +4,13 @@
     file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */
 
-#ifndef LAPI_PROCESS_H
-#define LAPI_PROCESS_H
+#ifndef LAPI_GENERIC_H
+#define LAPI_GENERIC_H
+
+#include <stdbool.h>
 
 #include "dspmodule.h"
 
-extern const DSPLoaderAPI lapi_process;
+extern const DSPLoaderAPI lapi_generic;
 
 #endif

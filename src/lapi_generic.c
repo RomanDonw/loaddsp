@@ -4,7 +4,7 @@
     file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */
 
-#include "lapi_startup.h"
+#include "lapi_generic.h"
 
 #include <pipewire/impl-port.h>
 
@@ -67,7 +67,7 @@ static void lapif_setportdispname(void *port, const char *dispname)
     pw_impl_port_update_properties(port ? port : (void *)1, &propsdict);
 }
 
-const DSPLoaderAPI lapi_startup =
+const DSPLoaderAPI lapi_generic =
 {
     .getfiltersysname = lapif_getfiltersysname,
     .getfilterdispname = lapif_getfilterdispname,

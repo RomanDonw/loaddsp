@@ -4,11 +4,11 @@
     file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */
 
-#include "lapi_process.h"
+#include "lapi_rtsafe.h"
 
 #include <pipewire/filter.h>
 
-const DSPLoaderAPI lapi_process =
+const DSPLoaderAPI lapi_rtsafe =
 {
     .getportbuffer = (float *(*)(void *, unsigned long))pw_filter_get_dsp_buffer
 };

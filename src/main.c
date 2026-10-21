@@ -23,15 +23,13 @@
 #include <spa/utils/dict.h>
 
 #include "dspmodule.h"
-#include "lapi_startup.h"
-#include "lapi_process.h"
+#include "lapi_generic.h"
+#include "lapi_rtsafe.h"
 
 static struct pw_main_loop *mainloop = NULL;
 struct pw_filter *filter = NULL;
 static DSPModuleProcessFunctionPrototype *modfunc_process;
-
-#define LOADERAPIVERSION 1
-#define LOADERAPIVERSION_STR "1"
+static DSPModuleStateChangedFunctionPrototype *modfunc_chstate;
 
 static void procdsp(void *userdata, struct spa_io_position *position);
 static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_state state, const char *error);
@@ -47,7 +45,7 @@ static void quitsignal(void *userdata, int signum)
 { putchar('\n'); pw_main_loop_quit(mainloop); }
 
 static int exitcode = -1;
-static bool quiet = false;
+static bool logstate = true;
 
 int main(int argc, char *argv[])
 {
@@ -62,7 +60,7 @@ int main(int argc, char *argv[])
                     goto parseoptsend;
 
                 case 'q':
-                    quiet = true;
+                    logstate = false;
                     break;
             }
         }
@@ -84,8 +82,12 @@ int main(int argc, char *argv[])
     {
         const unsigned short *modreqver = dlsym(module, "dspmodule_requiredAPIversion");
         if (!modreqver) { fprintf(stderr, "dlsym(\"dspmodule_requiredAPIversion\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
-        if (*modreqver != LOADERAPIVERSION)
-        { fprintf(stderr, "incompatible module version (mod. ver.: %hu, loader ver.: " LOADERAPIVERSION_STR ")\n", *modreqver); goto errorquit_afteropenmodule; }
+        
+        if (*modreqver < 1 || *modreqver > 2)
+        {
+            fprintf(stderr, "incompatible module version: supported 1 or 2, current %hu\n", *modreqver);
+            goto errorquit_afteropenmodule;
+        }
     }
 
     DSPModuleStartupFunctionPrototype *modfunc_startup = dlsym(module, "dspmodule_startup");
@@ -97,6 +99,8 @@ int main(int argc, char *argv[])
     modfunc_process = dlsym(module, "dspmodule_process");
     if (!modfunc_process) { fprintf(stderr, "dlsym(\"dspmodule_process\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
 
+    modfunc_chstate = dlsym(module, "dspmodule_statechanged");
+
     // ===============================================================
 
     pw_init(NULL, NULL);
@@ -106,21 +110,23 @@ int main(int argc, char *argv[])
 
     if (!(pw_loop_add_signal(loop, SIGINT, quitsignal, NULL) && pw_loop_add_signal(loop, SIGTERM, quitsignal, NULL))) goto errorquit_aftercreatemainloop;
 
-    struct pw_properties *props = pw_properties_new(
-            PW_KEY_MEDIA_TYPE, "Audio",
-            PW_KEY_MEDIA_CATEGORY, "Filter",
-            PW_KEY_MEDIA_ROLE, "DSP",
-        NULL);
-    if (!props) goto errorquit_aftercreatemainloop;
-    if (quiet) filterevents.state_changed = NULL;
-    if (!(filter = pw_filter_new_simple(loop, NULL, props, &filterevents, NULL)))
-    { pw_properties_free(props); goto errorquit_aftercreatemainloop; }
+    {
+        struct pw_properties *props = pw_properties_new(
+                PW_KEY_MEDIA_TYPE, "Audio",
+                PW_KEY_MEDIA_CATEGORY, "Filter",
+                PW_KEY_MEDIA_ROLE, "DSP",
+            NULL);
+        if (!props) goto errorquit_aftercreatemainloop;
+
+        if (!(filter = pw_filter_new_simple(loop, NULL, props, &filterevents, NULL)))
+        { pw_properties_free(props); goto errorquit_aftercreatemainloop; }
+    }
 
     // ===============================================================
 
     {
         const char *sysname = NULL, *dispname = NULL;
-        unsigned short ret = modfunc_startup(&lapi_startup, argc - optind, &argv[optind], &sysname, &dispname);
+        unsigned short ret = modfunc_startup(&lapi_generic, argc - optind, &argv[optind], &sysname, &dispname);
         if (ret) { fputs("\nmodule internal initialization error\n", stderr); exitcode = ret; goto errorquit_aftercreatefilter; }
 
         struct spa_dict_item dictitems[2] =
@@ -163,37 +169,49 @@ static void procdsp(void *userdata, struct spa_io_position *position)
     }
     else duration = position->clock.duration;
 
-    unsigned short ret = modfunc_process(&lapi_process, position->clock.position, duration, position->clock.rate.denom, position->clock.nsec);
+    unsigned short ret = modfunc_process(&lapi_rtsafe, position->clock.position, duration, position->clock.rate.denom, position->clock.nsec);
     if (ret) { exitcode = ret; pw_main_loop_quit(mainloop); }
 }
 
 static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_state state, const char *error)
 {
-    printf("(state changed to '");
-    switch (state)
+    if (logstate)
     {
-        case PW_FILTER_STATE_ERROR:
-            printf("error");
-            break;
+        printf("(state changed to '");
+        switch (state)
+        {
+            case PW_FILTER_STATE_ERROR:
+                printf("error");
+                break;
 
-        case PW_FILTER_STATE_UNCONNECTED:
-            printf("unconnected");
-            break;
+            case PW_FILTER_STATE_UNCONNECTED:
+                printf("unconnected");
+                break;
 
-        case PW_FILTER_STATE_CONNECTING:
-            printf("connecting");
-            break;
+            case PW_FILTER_STATE_CONNECTING:
+                printf("connecting");
+                break;
 
-        case PW_FILTER_STATE_PAUSED:
-            printf("paused");
-            break;
-        
-        case PW_FILTER_STATE_STREAMING:
-            printf("streaming");
-            break;
-        
-        default:
-            printf("(unknown)");
+            case PW_FILTER_STATE_PAUSED:
+                printf("paused");
+                break;
+            
+            case PW_FILTER_STATE_STREAMING:
+                printf("streaming");
+                break;
+            
+            default:
+                printf("(unknown)");
+        }
+        puts("')");
     }
-    puts("')");
+
+    if (modfunc_chstate &&
+        (old == PW_FILTER_STATE_PAUSED || old == PW_FILTER_STATE_STREAMING) &&
+        (state == PW_FILTER_STATE_PAUSED || state == PW_FILTER_STATE_STREAMING))
+    {
+        unsigned short ret = modfunc_chstate(&lapi_generic, old == PW_FILTER_STATE_STREAMING ? DSPState_Streaming : DSPState_Paused,
+            state == PW_FILTER_STATE_STREAMING ? DSPState_Streaming : DSPState_Paused);
+        if (ret) { exitcode = ret; pw_main_loop_quit(mainloop); }
+    }
 }
