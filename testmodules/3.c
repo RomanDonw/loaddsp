@@ -66,5 +66,3 @@ unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long po
 
     return 0;
 }
-
-void dspmodule_cleanup(void) {}
