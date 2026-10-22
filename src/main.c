@@ -93,12 +93,10 @@ int main(int argc, char *argv[])
     DSPModuleStartupFunctionPrototype *modfunc_startup = dlsym(module, "dspmodule_startup");
     if (!modfunc_startup) { fprintf(stderr, "dlsym(\"dspmodule_startup\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
 
-    DSPModuleCleanupFunctionPrototype *modfunc_cleanup = dlsym(module, "dspmodule_cleanup");
-    if (!modfunc_cleanup) { fprintf(stderr, "dlsym(\"dspmodule_cleanup\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
-
     modfunc_process = dlsym(module, "dspmodule_process");
     if (!modfunc_process) { fprintf(stderr, "dlsym(\"dspmodule_process\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
-
+    
+    DSPModuleCleanupFunctionPrototype *modfunc_cleanup = dlsym(module, "dspmodule_cleanup");
     modfunc_chstate = dlsym(module, "dspmodule_statechanged");
 
     // ===============================================================
@@ -146,7 +144,7 @@ int main(int argc, char *argv[])
     pw_main_loop_run(mainloop);
 
     errorquit_aftermodulestartup:
-        modfunc_cleanup();
+        if (modfunc_cleanup) modfunc_cleanup();
     errorquit_aftercreatefilter:
         pw_filter_destroy(filter);
     errorquit_aftercreatemainloop:
