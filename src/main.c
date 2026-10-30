@@ -25,6 +25,7 @@
 #include "dspmodule.h"
 #include "lapi_generic.h"
 #include "lapi_rtsafe.h"
+#include "util.h"
 
 static struct pw_main_loop *mainloop = NULL;
 struct pw_filter *filter = NULL;
@@ -69,7 +70,7 @@ int main(int argc, char *argv[])
 
     if (optind >= argc)
     {
-        fprintf(stderr, "Too few arguments. Basic command line arguments scheme: \n"
+        printf("Too few arguments. Basic command line arguments scheme: \n"
             "\t%s [optional loader parametres] <path to DSP .so module> [additional args for module].\n", argv[0]);
         return -1;
     }
@@ -77,24 +78,24 @@ int main(int argc, char *argv[])
     // ===============================================================
 
     void *module = dlmopen(LM_ID_NEWLM, argv[optind], RTLD_NOW);
-    if (!module) { fprintf(stderr, "dlopen(): %s\n", dlerror()); return -1; }
+    if (!module) { printf("dlopen(): %s\n", dlerror()); return -1; }
 
     {
         const unsigned short *modreqver = dlsym(module, "dspmodule_requiredAPIversion");
-        if (!modreqver) { fprintf(stderr, "dlsym(\"dspmodule_requiredAPIversion\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
+        if (!modreqver) { printf("dlsym(\"dspmodule_requiredAPIversion\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
         
-        if (*modreqver < 1 || *modreqver > 2)
+        if (*modreqver != 3)
         {
-            fprintf(stderr, "incompatible module version: supported 1 or 2, current %hu\n", *modreqver);
+            printf("incompatible module version: supported only 3, current %hu\n", *modreqver);
             goto errorquit_afteropenmodule;
         }
     }
 
     DSPModuleStartupFunctionPrototype *modfunc_startup = dlsym(module, "dspmodule_startup");
-    if (!modfunc_startup) { fprintf(stderr, "dlsym(\"dspmodule_startup\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
+    if (!modfunc_startup) { printf("dlsym(\"dspmodule_startup\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
 
     modfunc_process = dlsym(module, "dspmodule_process");
-    if (!modfunc_process) { fprintf(stderr, "dlsym(\"dspmodule_process\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
+    if (!modfunc_process) { printf("dlsym(\"dspmodule_process\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
     
     DSPModuleCleanupFunctionPrototype *modfunc_cleanup = dlsym(module, "dspmodule_cleanup");
     modfunc_chstate = dlsym(module, "dspmodule_statechanged");
@@ -125,7 +126,12 @@ int main(int argc, char *argv[])
     {
         const char *sysname = NULL, *dispname = NULL;
         unsigned short ret = modfunc_startup(&lapi_generic, argc - optind, &argv[optind], &sysname, &dispname);
-        if (ret) { fputs("\nmodule internal initialization error\n", stderr); exitcode = ret; goto errorquit_aftercreatefilter; }
+        if (ret)
+        {
+            loader_log(DSPLogLevel_Fatal, "module internal initialization error");
+            exitcode = ret;
+            goto errorquit_aftercreatefilter;
+        }
 
         struct spa_dict_item dictitems[2] =
         {
@@ -138,7 +144,8 @@ int main(int argc, char *argv[])
 
     // ===============================================================
 
-    if (pw_filter_connect(filter, 0, NULL, 0)) { fputs("error connecting filter.\n", stderr); goto errorquit_aftermodulestartup; }
+    if (pw_filter_connect(filter, 0, NULL, 0))
+    { loader_log(DSPLogLevel_Fatal, "error connecting filter."); goto errorquit_aftermodulestartup; }
 
     exitcode = 0;
     pw_main_loop_run(mainloop);
@@ -162,8 +169,8 @@ static void procdsp(void *userdata, struct spa_io_position *position)
     if (position->clock.duration > UINT32_MAX)
     {
         duration = UINT32_MAX;
-        printf("too big size of current cycle (position: %llu, duration: %llu, max duration: 2 ^ 32 - 1). processing only 2 ^ 32 - 1 samples.\n",
-            position->clock.position, position->clock.duration);
+        loader_log(DSPLogLevel_Warning, "too big size of current cycle (position: %llu, duration: %llu, max duration: 2 ^ 32 - 1)."
+            " processing only 2 ^ 32 - 1 samples.\n", position->clock.position, position->clock.duration);
     }
     else duration = position->clock.duration;
 
@@ -175,33 +182,33 @@ static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_stat
 {
     if (logstate)
     {
-        printf("(state changed to '");
+        const char *statestr;
         switch (state)
         {
             case PW_FILTER_STATE_ERROR:
-                printf("error");
+                statestr = "error";
                 break;
 
             case PW_FILTER_STATE_UNCONNECTED:
-                printf("unconnected");
+                statestr = "unconnected";
                 break;
 
             case PW_FILTER_STATE_CONNECTING:
-                printf("connecting");
+                statestr = "connecting";
                 break;
 
             case PW_FILTER_STATE_PAUSED:
-                printf("paused");
+                statestr = "paused";
                 break;
             
             case PW_FILTER_STATE_STREAMING:
-                printf("streaming");
+                statestr = "streaming";
                 break;
             
             default:
-                printf("(unknown)");
+                statestr = "(unknown)";
         }
-        puts("')");
+        loader_log(DSPLogLevel_Info, "(state changed to '%s')", statestr);
     }
 
     if (modfunc_chstate &&

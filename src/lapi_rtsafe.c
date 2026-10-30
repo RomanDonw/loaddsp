@@ -8,8 +8,11 @@
 
 #include <pipewire/filter.h>
 
+#include "util.h"
+
 const DSPLoaderAPI lapi_rtsafe =
 {
-    .getportbuffer = (float *(*)(void *, unsigned long))pw_filter_get_dsp_buffer
+    .getportbuffer = (float *(*)(void *, unsigned long))pw_filter_get_dsp_buffer,
+    .log = module_log
 };
 

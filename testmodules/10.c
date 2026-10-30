@@ -12,7 +12,7 @@
 #include <stdbool.h>
 #include <math.h>
 
-const unsigned short dspmodule_requiredAPIversion = 1;
+const unsigned short dspmodule_requiredAPIversion = 3;
 
 static float ampmod = 0, volmod = 0.1, freq = 0, phase = 0;
 static void *outport = NULL;
@@ -48,7 +48,7 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
 
     if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { puts("error adding output port"); return 1; }
 
-    printf("frequency: %f Hz\nphase: %f seconds\nampmod: %f\nvolmod: %f\n", freq, phase, ampmod, volmod);
+    lapi->log(DSPLogLevel_Info, "frequency: %f Hz\nphase: %f seconds\nampmod: %f\nvolmod: %f", freq, phase, ampmod, volmod);
     *sysname = "sinwavegen";
     *dispname = "sine wave generator";
     return 0;

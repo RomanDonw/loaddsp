@@ -7,6 +7,8 @@
 #ifndef DSPMODULE_H
 #define DSPMODULE_H
 
+// Current API version: 3.
+
 #include <stddef.h>
 
 #define DSPMODULE_API __attribute__((visibility("default")))
@@ -23,6 +25,15 @@ enum DSPState
     DSPState_Streaming = 1
 } typedef DSPState;
 
+enum DSPLogLevel
+{
+    DSPLogLevel_Debug = 0,
+    DSPLogLevel_Info = 1,
+    DSPLogLevel_Warning = 2,
+    DSPLogLevel_Error = 3,
+    DSPLogLevel_Fatal = 4
+} typedef DSPLogLevel;
+
 struct DSPLoaderAPI
 {
     const char *(*getfiltersysname)(void);
@@ -36,6 +47,8 @@ struct DSPLoaderAPI
     const char *(*getportdispname)(void *port);
     void (*setportdispname)(void *port, const char *dispname);
     float *(*getportbuffer)(void *port, unsigned long samplescount); // returns NULL if buffer isn't available.
+
+    void (*log)(DSPLogLevel, const char *format, ...);
 } typedef DSPLoaderAPI;
 
 typedef unsigned short DSPModuleStartupFunctionPrototype(const DSPLoaderAPI *, int argc, char * const argv[], const char **sysname, const char **dispname);

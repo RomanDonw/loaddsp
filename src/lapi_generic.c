@@ -9,6 +9,7 @@
 #include <pipewire/impl-port.h>
 
 #include "main.h"
+#include "util.h"
 
 static const char *lapif_getfiltersysname(void)
 { return spa_dict_lookup(&(pw_filter_get_properties(filter, NULL)->dict), PW_KEY_NODE_NAME); }
@@ -77,5 +78,7 @@ const DSPLoaderAPI lapi_generic =
     .removeport = (void (*)(void *))pw_filter_remove_port,
     .getportsysname = lapif_getportsysname,
     .getportdispname = lapif_getportdispname,
-    .setportdispname = lapif_setportdispname
+    .setportdispname = lapif_setportdispname,
+
+    .log = module_log
 };
