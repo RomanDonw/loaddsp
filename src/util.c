@@ -5,8 +5,12 @@
 #include <time.h>
 #include <string.h>
 
+DSPLogLevel currloglevel = DSPLogLevel_Info;
+
 static void _log(const char *location, DSPLogLevel level, const char *format, va_list args)
 {
+    if (level < currloglevel) return;
+
     const char *levelstr;
     switch (level)
     {

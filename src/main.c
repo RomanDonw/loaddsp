@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 {
     {
         int p;
-        while ((p = getopt(argc, argv, "-q")) != -1)
+        while ((p = getopt(argc, argv, "-ql:")) != -1)
         {
             switch (p)
             {
@@ -62,6 +62,31 @@ int main(int argc, char *argv[])
 
                 case 'q':
                     logstate = false;
+                    break;
+
+                case 'l':
+                    switch (*optarg)
+                    {
+                        case 'i':
+                            currloglevel = DSPLogLevel_Info;
+                            break;
+
+                        case 'w':
+                            currloglevel = DSPLogLevel_Warning;
+                            break;
+
+                        case 'e':
+                            currloglevel = DSPLogLevel_Error;
+                            break;
+
+                        case 'f':
+                            currloglevel = DSPLogLevel_Fatal;
+                            break;
+
+                        default:
+                            puts("invalid min log level. allowed: 'i' (info), 'w' (warning), 'e' (error), 'f' (fatal)");
+                            return 1;
+                    }
                     break;
             }
         }
@@ -141,11 +166,11 @@ int main(int argc, char *argv[])
         struct spa_dict propsdict = SPA_DICT_INIT(dictitems, 2);
         pw_filter_update_properties(filter, NULL, &propsdict);
     }
-
+    
     // ===============================================================
 
     if (pw_filter_connect(filter, 0, NULL, 0))
-    { loader_log(DSPLogLevel_Fatal, "error connecting filter."); goto errorquit_aftermodulestartup; }
+    { loader_log(DSPLogLevel_Fatal, "failed connecting filter to graph"); goto errorquit_aftermodulestartup; }
 
     exitcode = 0;
     pw_main_loop_run(mainloop);
@@ -208,7 +233,7 @@ static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_stat
             default:
                 statestr = "(unknown)";
         }
-        loader_log(DSPLogLevel_Info, "(state changed to '%s')", statestr);
+        loader_log(DSPLogLevel_Info, "state changed to '%s'", statestr);
     }
 
     if (modfunc_chstate &&
