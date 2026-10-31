@@ -26,19 +26,19 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
             switch (p)
             {
                 case 'a':
-                    if (sscanf(optarg, "%f", &amplitudemodifier) < 1) goto errorparseopt;
+                    if (sscanf(optarg, "%f", &amplitudemodifier) < 1) goto parseoptfail;
                     break;
 
                 case 'v':
-                    if (sscanf(optarg, "%f", &volumemodifier) < 1) goto errorparseopt;
+                    if (sscanf(optarg, "%f", &volumemodifier) < 1) goto parseoptfail;
                     break;
 
                 case 'p':
-                    if (sscanf(optarg, "%hu", &ioportpairs) < 1) goto errorparseopt;
+                    if (sscanf(optarg, "%hu", &ioportpairs) < 1) goto parseoptfail;
                     break;
 
-                errorparseopt:
-                    lapi->log(DSPLogLevel_Fatal, "error parsing option -%c", (char)p);
+                parseoptfail:
+                    lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
                 return 1;
             }
         }
@@ -69,7 +69,7 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
         }
     }
 
-    lapi->log(DSPLogLevel_Fatal, "I/O ports pairs: %hu\namplitude modifier: %f\nvolume modifier: %f", ioportpairs, amplitudemodifier, volumemodifier);
+    lapi->log(DSPLogLevel_Info, "I/O ports pairs: %hu\namplitude modifier: %f\nvolume modifier: %f", ioportpairs, amplitudemodifier, volumemodifier);
     *sysname = "ampvolmod";
     *dispname = "amplitude/volume modifier";
     return 0;

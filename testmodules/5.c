@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-const unsigned short dspmodule_requiredAPIversion = 1;
+const unsigned short dspmodule_requiredAPIversion = 3;
 
 static unsigned short freq = 0;
 static float ampmod = 0, volmod = 0.5, lastsample;
@@ -30,16 +30,20 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
             switch (p)
             {
                 case 'f':
-                    if (sscanf(optarg, "%hu", &freq) < 1) { puts("error parsing option -f"); return 1; }
+                    if (sscanf(optarg, "%hu", &freq) < 1) goto parseoptfail;
                     break;
 
                 case 'v':
-                    if (sscanf(optarg, "%f", &volmod) < 1) { puts("error parsing option -v"); return 1; }
+                    if (sscanf(optarg, "%f", &volmod) < 1) goto parseoptfail;
                     break;
 
                 case 'a':
-                    if (sscanf(optarg, "%f", &ampmod) < 1) { puts("error parsing option -a"); return 1; }
+                    if (sscanf(optarg, "%f", &ampmod) < 1) goto parseoptfail;
                     break;
+
+                parseoptfail:
+                    lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
+                return 1;
             }
         }
     }
@@ -47,11 +51,11 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     srand(time(NULL));
     if (freq) lastsample = adjf(rndf(), ampmod) * volmod;
 
-    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { puts("error creating output port"); return 1; }
+    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0)))
+    { lapi->log(DSPLogLevel_Fatal, "error creating output port"); return 1; }
 
-    if (freq) printf("freq: %hu Hz\n", freq);
-    else puts("freq: (relative to sample rate)");
-    printf("ampmod: %f\nvolmod: %f\n", ampmod, volmod);
+    if (freq) lapi->log(DSPLogLevel_Info, "freq: %hu Hz\nampmod: %f\nvolmod: %f", freq, ampmod, volmod);
+    else lapi->log(DSPLogLevel_Info, "freq: (relative to sample rate)\nampmod: %f\nvolmod: %f", ampmod, volmod);
     *sysname = "noisegen";
     *dispname = "noise generator";
     return 0;

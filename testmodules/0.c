@@ -26,19 +26,19 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
             switch (p)
             {
                 case 'm':
-                    if (sscanf(optarg, "%f", &minvalue) < 1) goto errorparseopt;
+                    if (sscanf(optarg, "%f", &minvalue) < 1) goto parseoptfail;
                     break;
 
                 case 'M':
-                    if (sscanf(optarg, "%f", &maxvalue) < 1) goto errorparseopt;
+                    if (sscanf(optarg, "%f", &maxvalue) < 1) goto parseoptfail;
                     break;
 
                 case 'p':
-                    if (sscanf(optarg, "%hu", &ioportpairs) < 1) goto errorparseopt;
+                    if (sscanf(optarg, "%hu", &ioportpairs) < 1) goto parseoptfail;
                     break;
 
-                errorparseopt:
-                    lapi->log(DSPLogLevel_Fatal, "error parsing option -%c", (char)p);
+                parseoptfail:
+                    lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
                 return 1;
             }
         }

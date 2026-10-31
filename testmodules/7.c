@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-const unsigned short dspmodule_requiredAPIversion = 1;
+const unsigned short dspmodule_requiredAPIversion = 3;
 
 static float ampmod = 0, volmod = 0.1;
 static void *infiledata, *outport;
@@ -30,11 +30,11 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
             switch (p)
             {
                 case 'a':
-                    if (sscanf(optarg, "%f", &ampmod) < 1) { puts("error parsing option -a"); return 1; }
+                    if (sscanf(optarg, "%f", &ampmod) < 1) goto parseoptfail;
                     break;
 
                 case 'v':
-                    if (sscanf(optarg, "%f", &volmod) < 1) { puts("error parsing option -v"); return 1; }
+                    if (sscanf(optarg, "%f", &volmod) < 1) goto parseoptfail;
                     break;
 
                 case 'f':
@@ -44,27 +44,31 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
                 case 'u':
                     useu8 = true;
                     break;
+
+                parseoptfail:
+                    lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
+                return 1;
             }
         }
     }
 
-    if (!infilepath) { puts("specify source audio file through -f parameter"); return 1; }
+    if (!infilepath) { lapi->log(DSPLogLevel_Fatal, "specify source audio file through -f parameter"); return 1; }
 
-    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { puts("error creating output port"); return 1; }
+    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { lapi->log(DSPLogLevel_Fatal, "error creating output port"); return 1; }
 
     FILE *f = fopen(infilepath, "rb");
-    if (!f) { puts("unable to open specified file"); return 1; }
+    if (!f) { lapi->log(DSPLogLevel_Fatal, "unable to open specified file"); return 1; }
 
     fseek(f, 0, SEEK_END);
     infilesize = ftell(f);
     fseek(f, 0, SEEK_SET);
 
     infiledata = malloc(infilesize);
-    if (!infiledata) { puts("memory allocation failed"); fclose(f); return 1; }
+    if (!infiledata) { lapi->log(DSPLogLevel_Fatal, "memory allocation failed"); fclose(f); return 1; }
 
     if (fread(infiledata, 1, infilesize, f) < infilesize || ferror(f))
     {
-        puts("error reading file");
+        lapi->log(DSPLogLevel_Fatal, "failed reading file");
         free(infiledata);
         fclose(f);
         return 1;
@@ -72,7 +76,7 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
 
     fclose(f);
 
-    printf("in file: \"%s\"\nampmod: %f\nvolmod: %f\nused 8-bit %ssigned PCM\n", infilepath, ampmod, volmod, useu8 ? "un" : "");
+    lapi->log(DSPLogLevel_Info, "in file: \"%s\"\nampmod: %f\nvolmod: %f\nused 8-bit %ssigned PCM", infilepath, ampmod, volmod, useu8 ? "un" : "");
     *sysname = "pcmfileplayer";
     *dispname = "looped PCM (un)signed 8-bit mono file player";
     return 0;

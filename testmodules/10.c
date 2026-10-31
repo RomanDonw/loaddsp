@@ -28,25 +28,30 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
             switch (p)
             {
                 case 'f':
-                    if (sscanf(optarg, "%f", &freq) < 1) { puts("error parsing option -f"); return 1; }
+                    if (sscanf(optarg, "%f", &freq) < 1) goto parseoptfail;
                     break;
 
                 case 'a':
-                    if (sscanf(optarg, "%f", &ampmod) < 1) { puts("error parsing option -a"); return 1; }
+                    if (sscanf(optarg, "%f", &ampmod) < 1) goto parseoptfail;
                     break;
 
                 case 'v':
-                    if (sscanf(optarg, "%f", &volmod) < 1) { puts("error parsing option -v"); return 1; }
+                    if (sscanf(optarg, "%f", &volmod) < 1) goto parseoptfail;
                     break;
                 
                 case 'p':
-                    if (sscanf(optarg, "%f", &phase) < 1) { puts("error parsing option -p"); return 1; }
+                    if (sscanf(optarg, "%f", &phase) < 1) goto parseoptfail;
                     break;
+
+                parseoptfail:
+                    lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
+                return 1;
             }
         }
     }
 
-    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { puts("error adding output port"); return 1; }
+    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0)))
+    { lapi->log(DSPLogLevel_Fatal, "error adding output port"); return 1; }
 
     lapi->log(DSPLogLevel_Info, "frequency: %f Hz\nphase: %f seconds\nampmod: %f\nvolmod: %f", freq, phase, ampmod, volmod);
     *sysname = "sinwavegen";

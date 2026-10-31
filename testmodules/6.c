@@ -11,7 +11,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 
-const unsigned short dspmodule_requiredAPIversion = 1;
+const unsigned short dspmodule_requiredAPIversion = 3;
 
 static unsigned short outportscount = 0;
 static void *inport, **outports = NULL;
@@ -25,29 +25,30 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
             switch (p)
             {
                 case 'o':
-                    if (sscanf(optarg, "%hu", &outportscount) < 1) { puts("error parsing option -o"); return 1; }
+                    if (sscanf(optarg, "%hu", &outportscount) < 1) { lapi->log(DSPLogLevel_Fatal, "failed parsing option -o"); return 1; }
                     break;
             }
         }
     }
 
-    if (!outportscount) { puts("specify at least one output port through -o parameter"); return 1; }
+    if (!outportscount) { lapi->log(DSPLogLevel_Fatal, "specify at least one output port through -o parameter"); return 1; }
 
-    if (!(inport = lapi->addport("input", NULL, DSPPortDirection_Input, 0))) { puts("error create input port"); return 1; }
+    if (!(inport = lapi->addport("input", NULL, DSPPortDirection_Input, 0)))
+    { lapi->log(DSPLogLevel_Fatal, "error create input port"); return 1; }
 
-    if (!(outports = malloc(outportscount * sizeof(void *)))) { puts("memory allocation failed"); return 1; }
+    if (!(outports = malloc(outportscount * sizeof(void *)))) { lapi->log(DSPLogLevel_Fatal, "memory allocation failed"); return 1; }
 
     char namebuff[16];
     for (unsigned short i = 0; i < outportscount; i++)
     {
         if (snprintf(namebuff, sizeof(namebuff), "output_%hu", i) < 0)
-        { puts("snprintf formatting error"); goto errorquit_afteralloc; }
+        { lapi->log(DSPLogLevel_Fatal, "snprintf formatting error"); goto errorquit_afteralloc; }
         
         if (!(outports[i] = lapi->addport(namebuff, NULL, DSPPortDirection_Output, 0)))
-        { printf("unable to create output port with name \"%s\"\n", namebuff); goto errorquit_afteralloc; }
+        { lapi->log(DSPLogLevel_Fatal, "unable to create output port with name \"%s\"", namebuff); goto errorquit_afteralloc; }
     }
 
-    printf("Output ports: %hu\n", outportscount);
+    lapi->log(DSPLogLevel_Info, "Output ports: %hu", outportscount);
     *sysname = "multitarget";
     return 0;
 

@@ -11,7 +11,7 @@
 #include <getopt.h>
 #include <stdbool.h>
 
-const unsigned short dspmodule_requiredAPIversion = 1;
+const unsigned short dspmodule_requiredAPIversion = 3;
 
 static unsigned short freq = 0;
 static float minvalue = -1, maxvalue = 1, volmod = 0.1;
@@ -26,29 +26,33 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
             switch (p)
             {
                 case 'f':
-                    if (sscanf(optarg, "%hu", &freq) < 1) { puts("error parsing option -f"); return 1; }
+                    if (sscanf(optarg, "%hu", &freq) < 1) goto parseoptfail;
                     break;
 
                 case 'm':
-                    if (sscanf(optarg, "%f", &minvalue) < 1) { puts("error parsing option -m"); return 1; }
+                    if (sscanf(optarg, "%f", &minvalue) < 1) goto parseoptfail;
                     break;
 
                 case 'M':
-                    if (sscanf(optarg, "%f", &maxvalue) < 1) { puts("error parsing option -M"); return 1; }
+                    if (sscanf(optarg, "%f", &maxvalue) < 1) goto parseoptfail;
                     break;
 
                 case 'v':
-                    if (sscanf(optarg, "%f", &volmod) < 1) { puts("error parsing option -v"); return 1; }
+                    if (sscanf(optarg, "%f", &volmod) < 1) goto parseoptfail;
                     break;
+
+                parseoptfail:
+                    lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
+                return 1;
             }
         }
     }
 
-    if (!freq || freq > 20000) { puts("frequency must be in range [1..20000]"); return 1; }
+    if (!freq || freq > 20000) { lapi->log(DSPLogLevel_Fatal, "frequency must be in range [1..20000]"); return 1; }
 
-    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { puts("error adding output port"); return 1; }
+    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { lapi->log(DSPLogLevel_Fatal, "error adding output port"); return 1; }
 
-    printf("frequency: %hu Hz\nmin value: %f\nmax value: %f\nvolmod: %f\n", freq, minvalue, maxvalue, volmod);
+    lapi->log(DSPLogLevel_Info, "frequency: %hu Hz\nmin value: %f\nmax value: %f\nvolmod: %f", freq, minvalue, maxvalue, volmod);
     *sysname = "sqwavegen";
     *dispname = "square wave generator";
     return 0;
