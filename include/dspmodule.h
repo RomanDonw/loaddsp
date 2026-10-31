@@ -34,6 +34,8 @@ enum DSPLogLevel
     DSPLogLevel_Fatal = 4
 } typedef DSPLogLevel;
 
+typedef void DSPLoaderAPILogFunctionPrototype(DSPLogLevel, const char *format, ...);
+
 struct DSPLoaderAPI
 {
     const char *(*getfiltersysname)(void);
@@ -48,7 +50,7 @@ struct DSPLoaderAPI
     void (*setportdispname)(void *port, const char *dispname);
     float *(*getportbuffer)(void *port, unsigned long samplescount); // returns NULL if buffer isn't available.
 
-    void (*log)(DSPLogLevel, const char *format, ...);
+    DSPLoaderAPILogFunctionPrototype *log;
 } typedef DSPLoaderAPI;
 
 typedef unsigned short DSPModuleStartupFunctionPrototype(const DSPLoaderAPI *, int argc, char * const argv[], const char **sysname, const char **dispname);
