@@ -39,7 +39,7 @@ static void _log(const char *location, DSPLogLevel level, const char *format, va
     }
     
     time_t now = time(NULL);
-    char datebuff[128];
+    char datebuff[9];
     strftime(datebuff, sizeof(datebuff), "%H:%M:%S", localtime(&now));
     printf("[%s %s %-5s] ", datebuff, location, levelstr);
 
