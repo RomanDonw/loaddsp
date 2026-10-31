@@ -11,7 +11,7 @@
 #include <string.h>
 #include <getopt.h>
 
-const unsigned short dspmodule_requiredAPIversion = 1;
+const unsigned short dspmodule_requiredAPIversion = 3;
 
 static unsigned short ioportpairs = 0;
 static float amplitudemodifier = 0, volumemodifier = 1;
@@ -26,27 +26,31 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
             switch (p)
             {
                 case 'a':
-                    if (sscanf(optarg, "%f", &amplitudemodifier) < 1) { puts("error parsing option -a"); return 1; }
+                    if (sscanf(optarg, "%f", &amplitudemodifier) < 1) goto errorparseopt;
                     break;
 
                 case 'v':
-                    if (sscanf(optarg, "%f", &volumemodifier) < 1) { puts("error parsing option -v"); return 1; }
+                    if (sscanf(optarg, "%f", &volumemodifier) < 1) goto errorparseopt;
                     break;
 
                 case 'p':
-                    if (sscanf(optarg, "%hu", &ioportpairs) < 1) { puts("error parsing option -p"); return 1; }
+                    if (sscanf(optarg, "%hu", &ioportpairs) < 1) goto errorparseopt;
                     break;
+
+                errorparseopt:
+                    lapi->log(DSPLogLevel_Fatal, "error parsing option -%c", (char)p);
+                return 1;
             }
         }
     }
 
-    if (!ioportpairs) { puts("specify at least one I/O ports pair through -p parameter"); return 1; }
+    if (!ioportpairs) { lapi->log(DSPLogLevel_Fatal, "specify at least one I/O ports pair through -p parameter"); return 1; }
 
     {
         size_t portarrsize = ioportpairs * sizeof(void *);
         if (!((inports = malloc(portarrsize)) &&
                 (outports = malloc(portarrsize))))
-        { puts("memory allocation failed"); goto errorquit_onorafterallocportarrays; }
+        { lapi->log(DSPLogLevel_Fatal, "memory allocation failed"); goto errorquit_onorafterallocportarrays; }
     }
 
     {
@@ -54,18 +58,18 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
         for (unsigned short i = 0; i < ioportpairs; i++)
         {
             if (snprintf(namebuff, sizeof(namebuff), "input_%hu", i) < 0)
-            { puts("snprintf formatting error"); goto errorquit_onorafterallocportarrays; }
+            { lapi->log(DSPLogLevel_Fatal, "snprintf formatting error"); goto errorquit_onorafterallocportarrays; }
             if (!(inports[i] = lapi->addport(namebuff, NULL, DSPPortDirection_Input, 0)))
-            { printf("unable to create input port with name \"%s\"\n", namebuff); goto errorquit_onorafterallocportarrays; }
+            { lapi->log(DSPLogLevel_Fatal, "unable to create input port with name \"%s\"", namebuff); goto errorquit_onorafterallocportarrays; }
 
             if (snprintf(namebuff, sizeof(namebuff), "output_%hu", i) < 0)
-            { puts("snprintf formatting error"); goto errorquit_onorafterallocportarrays; }
+            { lapi->log(DSPLogLevel_Fatal, "snprintf formatting error"); goto errorquit_onorafterallocportarrays; }
             if (!(outports[i] = lapi->addport(namebuff, NULL, DSPPortDirection_Output, 0)))
-            { printf("unable to create output port with name \"%s\"\n", namebuff); goto errorquit_onorafterallocportarrays; }
+            { lapi->log(DSPLogLevel_Fatal, "unable to create output port with name \"%s\"", namebuff); goto errorquit_onorafterallocportarrays; }
         }
     }
 
-    printf("I/O ports pairs: %hu\namplitude modifier: %f\nvolume modifier: %f\n", ioportpairs, amplitudemodifier, volumemodifier);
+    lapi->log(DSPLogLevel_Fatal, "I/O ports pairs: %hu\namplitude modifier: %f\nvolume modifier: %f", ioportpairs, amplitudemodifier, volumemodifier);
     *sysname = "ampvolmod";
     *dispname = "amplitude/volume modifier";
     return 0;
