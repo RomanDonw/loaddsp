@@ -11,17 +11,17 @@
 #include <string.h>
 #include <getopt.h>
 
-const unsigned short dspmodule_requiredAPIversion = 3;
+const unsigned short dspmodule_requiredAPIversion = 4;
 
 static unsigned short ioportpairs = 0;
 static float amplitudemodifier = 0, volumemodifier = 1;
 static void **inports = NULL, **outports = NULL;
 
-unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
+unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, DSPModuleStartupFunctionOptions *opts)
 {
     {
         int p;
-        while ((p = getopt(argc, argv, "a:p:v:")) != -1)
+        while ((p = getopt(opts->argc, opts->argv, "a:p:v:")) != -1)
         {
             switch (p)
             {
@@ -70,8 +70,8 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     }
 
     lapi->log(DSPLogLevel_Info, "I/O ports pairs: %hu\namplitude modifier: %f\nvolume modifier: %f", ioportpairs, amplitudemodifier, volumemodifier);
-    *sysname = "ampvolmod";
-    *dispname = "amplitude/volume modifier";
+    opts->sysname = "ampvolmod";
+    opts->dispname = "amplitude/volume modifier";
     return 0;
 
     errorquit_onorafterallocportarrays:

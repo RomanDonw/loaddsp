@@ -7,7 +7,7 @@
 #ifndef DSPMODULE_H
 #define DSPMODULE_H
 
-// Current API version: 3.
+// Current API version: 4.
 
 #include <stddef.h>
 
@@ -53,7 +53,25 @@ struct DSPLoaderAPI
     DSPLoaderAPILogFunctionPrototype *log;
 } typedef DSPLoaderAPI;
 
-typedef unsigned short DSPModuleStartupFunctionPrototype(const DSPLoaderAPI *, int argc, char * const argv[], const char **sysname, const char **dispname);
+struct DSPModuleStartupFunctionOptions
+{
+    /* === IN === */
+    
+    int argc;
+    char * const *argv;
+
+    /* === OUT === */
+
+    // Required:
+    const char *sysname;
+    const char *dispname;
+
+    // Optional:
+    unsigned long forcerate;
+    unsigned long forcequantum;
+} typedef DSPModuleStartupFunctionOptions;
+
+typedef unsigned short DSPModuleStartupFunctionPrototype(const DSPLoaderAPI *, DSPModuleStartupFunctionOptions *);
 typedef unsigned short DSPModuleProcessFunctionPrototype(const DSPLoaderAPI *, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime);
 typedef void DSPModuleCleanupFunctionPrototype(void);
 typedef unsigned short DSPModuleStateChangedFunctionPrototype(const DSPLoaderAPI *, DSPState prevstate, DSPState currstate);

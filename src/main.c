@@ -109,9 +109,9 @@ int main(int argc, char *argv[])
         const unsigned short *modreqver = dlsym(module, "dspmodule_requiredAPIversion");
         if (!modreqver) { printf("dlsym(\"dspmodule_requiredAPIversion\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
         
-        if (*modreqver != 3)
+        if (*modreqver != 4)
         {
-            printf("incompatible module version: supported only 3, current %hu\n", *modreqver);
+            printf("incompatible module version: supported only 4, current %hu\n", *modreqver);
             goto errorquit_afteropenmodule;
         }
     }
@@ -149,8 +149,12 @@ int main(int argc, char *argv[])
     // ===============================================================
 
     {
-        const char *sysname = NULL, *dispname = NULL;
-        unsigned short ret = modfunc_startup(&lapi_generic, argc - optind, &argv[optind], &sysname, &dispname);
+        DSPModuleStartupFunctionOptions opts =
+        {
+            .argc = argc - optind,
+            .argv = argv + optind,
+        };
+        unsigned short ret = modfunc_startup(&lapi_generic, &opts);
         if (ret)
         {
             loader_log(DSPLogLevel_Fatal, "module internal initialization error");
@@ -158,10 +162,26 @@ int main(int argc, char *argv[])
             goto errorquit_aftercreatefilter;
         }
 
-        struct spa_dict_item dictitems[2] =
+        char forceratestr[11];
+        if (snprintf(forceratestr, sizeof(forceratestr), "%lu", opts.forcerate) < 0)
         {
-            SPA_DICT_ITEM_INIT(PW_KEY_NODE_NAME, sysname),
-            SPA_DICT_ITEM_INIT(PW_KEY_NODE_DESCRIPTION, dispname),
+            loader_log(DSPLogLevel_Fatal, "failed formatting string (force rate PipeWire option value) through snprintf");
+            goto errorquit_aftermodulestartup;
+        }
+
+        char forcequantumstr[11];
+        if (snprintf(forcequantumstr, sizeof(forcequantumstr), "%lu", opts.forcequantum) < 0)
+        {
+            loader_log(DSPLogLevel_Fatal, "failed formatting string (force quantum PipeWire option value) through snprintf");
+            goto errorquit_aftermodulestartup;
+        }
+
+        struct spa_dict_item dictitems[4] =
+        {
+            SPA_DICT_ITEM_INIT(PW_KEY_NODE_NAME, opts.sysname),
+            SPA_DICT_ITEM_INIT(PW_KEY_NODE_DESCRIPTION, opts.dispname),
+            SPA_DICT_ITEM_INIT(PW_KEY_NODE_FORCE_RATE, forceratestr),
+            SPA_DICT_ITEM_INIT(PW_KEY_NODE_FORCE_QUANTUM, forcequantumstr)
         };
         struct spa_dict propsdict = SPA_DICT_INIT(dictitems, 2);
         pw_filter_update_properties(filter, NULL, &propsdict);
