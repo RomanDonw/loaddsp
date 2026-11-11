@@ -71,8 +71,14 @@ struct DSPModuleStartupFunctionOptions
     unsigned long forcequantum;
 } typedef DSPModuleStartupFunctionOptions;
 
-typedef unsigned short DSPModuleStartupFunctionPrototype(const DSPLoaderAPI *, DSPModuleStartupFunctionOptions *);
-typedef unsigned short DSPModuleProcessFunctionPrototype(const DSPLoaderAPI *, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime);
+struct DSPModuleProcessFunctionOptions
+{
+    unsigned long long position, nsectime;
+    unsigned long duration, rate;
+} typedef DSPModuleProcessFunctionOptions;
+
+typedef unsigned short DSPModuleStartupFunctionPrototype(const DSPLoaderAPI * restrict, DSPModuleStartupFunctionOptions * restrict);
+typedef unsigned short DSPModuleProcessFunctionPrototype(const DSPLoaderAPI * restrict, DSPModuleProcessFunctionOptions * restrict);
 typedef void DSPModuleCleanupFunctionPrototype(void);
 typedef unsigned short DSPModuleStateChangedFunctionPrototype(const DSPLoaderAPI *, DSPState prevstate, DSPState currstate);
 

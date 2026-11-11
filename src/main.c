@@ -219,7 +219,15 @@ static void procdsp(void *userdata, struct spa_io_position *position)
     }
     else duration = position->clock.duration;
 
-    unsigned short ret = modfunc_process(&lapi_rtsafe, position->clock.position, duration, position->clock.rate.denom, position->clock.nsec);
+    DSPModuleProcessFunctionOptions opts =
+    {
+        .position = position->clock.position,
+        .duration = duration,
+        .rate = position->clock.rate.denom,
+        .nsectime = position->clock.nsec
+    };
+
+    unsigned short ret = modfunc_process(&lapi_rtsafe, &opts);
     if (ret) { exitcode = ret; pw_main_loop_quit(mainloop); }
 }
 

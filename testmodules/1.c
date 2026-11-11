@@ -17,7 +17,7 @@ static unsigned short ioportpairs = 0;
 static float amplitudemodifier = 0, volumemodifier = 1;
 static void **inports = NULL, **outports = NULL;
 
-unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, DSPModuleStartupFunctionOptions *opts)
+unsigned short dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleStartupFunctionOptions * restrict opts)
 {
     {
         int p;
@@ -80,16 +80,16 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, DSPModuleStartupFunct
     return 1;
 }
 
-unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime)
+unsigned short dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
     for (unsigned short ch = 0; ch < ioportpairs; ch++)
     {
-        float *out = lapi->getportbuffer(outports[ch], duration);
+        float *out = lapi->getportbuffer(outports[ch], opts->duration);
         if (!out) continue;
-        const float *in = lapi->getportbuffer(inports[ch], duration);
-        if (!in) { memset(out, 0, sizeof(float) * duration); continue; }
-        
-        for (unsigned long i = 0; i < duration; i++) out[i] = adjf(in[i], amplitudemodifier) * volumemodifier;
+        const float *in = lapi->getportbuffer(inports[ch], opts->duration);
+        if (!in) { memset(out, 0, sizeof(float) * opts->duration); continue; }
+
+        for (unsigned long i = 0; i < opts->duration; i++) out[i] = adjf(in[i], amplitudemodifier) * volumemodifier;
     }
 
     return 0;
