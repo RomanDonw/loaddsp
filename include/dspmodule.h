@@ -9,6 +9,11 @@
 
 // Current API version: 3.
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #include <stddef.h>
 
 #define DSPMODULE_API __attribute__((visibility("default")))
@@ -90,5 +95,9 @@ static inline float adjf(float in, float adj) // adjunctf.
 
 static inline float lerpf(float from, float to, float factor)
 { return from + (to - from) * clampf(factor, 0, 1); }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
