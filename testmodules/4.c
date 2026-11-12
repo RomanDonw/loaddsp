@@ -11,17 +11,17 @@
 #include <getopt.h>
 #include <stdlib.h>
 
-const unsigned short dspmodule_requiredAPIversion = 3;
+const unsigned short dspmodule_requiredAPIversion = 4;
 
 static unsigned short ioportpairs = 0;
 static float incutthreshold = 0, inamod = 0.5, invmod = 1, minval = -0.5, maxval = 0.5, outamod = 0, outvmod = 0.1;
 static void **inports = NULL, **outports = NULL;
 
-unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
+unsigned short dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleStartupFunctionOptions * restrict opts)
 {
     {
         int p;
-        while ((p = getopt(argc, argv, "c:a:v:A:V:m:M:p:")) != -1)
+        while ((p = getopt(opts->argc, opts->argv, "c:a:v:A:V:m:M:p:")) != -1)
         {
             switch (p)
             {
@@ -91,8 +91,8 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
 
     lapi->log(DSPLogLevel_Info, "I/O ports pairs: %hu\nincutthreshold: %f\ninamod: %f\ninvmod: %f\nminval: %f\nmaxval: %f\noutamod: %f\noutvmod: %f",
         ioportpairs, incutthreshold, inamod, invmod, minval, maxval, outamod, outvmod);
-    *sysname = "distortion";
-    *dispname = "complete distortion effect";
+    opts->sysname = "distortion";
+    opts->dispname = "complete distortion effect";
     return 0;
 
     errorquit_onorafterallocportarrays:
@@ -101,16 +101,16 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     return 1;
 }
 
-unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime)
+unsigned short dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
     for (unsigned short ch = 0; ch < ioportpairs; ch++)
     {
-        float *out = lapi->getportbuffer(outports[ch], duration);
+        float *out = lapi->getportbuffer(outports[ch], opts->duration);
         if (!out) continue;
-        const float *in = lapi->getportbuffer(inports[ch], duration);
-        if (!in) { memset(out, 0, sizeof(float) * duration); continue; }
+        const float *in = lapi->getportbuffer(inports[ch], opts->duration);
+        if (!in) { memset(out, 0, sizeof(float) * opts->duration); continue; }
 
-        for (unsigned long i = 0; i < duration; i++)
+        for (unsigned long i = 0; i < opts->duration; i++)
             out[i] = (incutthreshold >= 0) && absf(in[i]) <= incutthreshold ? 0 :
                 adjf(clampf(adjf(in[i], inamod) * invmod, minval, maxval), outamod) * outvmod;
     }

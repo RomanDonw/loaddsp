@@ -11,17 +11,17 @@
 #include <getopt.h>
 #include <stdlib.h>
 
-const unsigned short dspmodule_requiredAPIversion = 3;
+const unsigned short dspmodule_requiredAPIversion = 4;
 
 static unsigned short inportscount = 0;
 static void **inports = NULL, *outport;
 static float **inbuffers = NULL;
 
-unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
+unsigned short dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleStartupFunctionOptions * restrict opts)
 {
     {
         int p;
-        while ((p = getopt(argc, argv, "p:")) != -1)
+        while ((p = getopt(opts->argc, opts->argv, "p:")) != -1)
         {
             switch (p)
             {
@@ -51,8 +51,8 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     }
 
     lapi->log(DSPLogLevel_Info, "inportscount: %hu", inportscount);
-    *sysname = "monomixer";
-    *dispname = "mono mixer";
+    opts->sysname = "monomixer";
+    opts->dispname = "mono mixer";
     return 0;
 
     errorquit_freeinports:
@@ -61,20 +61,20 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     return 1;
 }
 
-unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime)
+unsigned short dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
-    float *out = lapi->getportbuffer(outport, duration);
+    float *out = lapi->getportbuffer(outport, opts->duration);
     if (!out) return 0;
 
     unsigned short realcount = 0;
     for (unsigned short i = 0; i < inportscount; i++)
     {
-        float *buff = lapi->getportbuffer(inports[i], duration);
+        float *buff = lapi->getportbuffer(inports[i], opts->duration);
         if (buff) inbuffers[realcount++] = buff;
     }
-    if (!realcount) { memset(out, 0, duration * sizeof(float)); return 0; }
+    if (!realcount) { memset(out, 0, opts->duration * sizeof(float)); return 0; }
 
-    for (unsigned long i = 0; i < duration; i++)
+    for (unsigned long i = 0; i < opts->duration; i++)
     {
         float v = 0;
         for (unsigned short j = 0; j < realcount; j++) v += inbuffers[j][i];

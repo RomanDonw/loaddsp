@@ -12,18 +12,18 @@
 #include <stdbool.h>
 #include <math.h>
 
-const unsigned short dspmodule_requiredAPIversion = 3;
+const unsigned short dspmodule_requiredAPIversion = 4;
 
 static float ampmod = 0, volmod = 0.1, freq = 0, phase = 0;
 static void *outport = NULL;
 
 #define PI 3.14159265358979323846
 
-unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
+unsigned short dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleStartupFunctionOptions * restrict opts)
 {
     {
         int p;
-        while ((p = getopt(argc, argv, "f:a:v:p:")) != -1)
+        while ((p = getopt(opts->argc, opts->argv, "f:a:v:p:")) != -1)
         {
             switch (p)
             {
@@ -54,19 +54,19 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     { lapi->log(DSPLogLevel_Fatal, "error adding output port"); return 1; }
 
     lapi->log(DSPLogLevel_Info, "frequency: %f Hz\nphase: %f seconds\nampmod: %f\nvolmod: %f", freq, phase, ampmod, volmod);
-    *sysname = "sinwavegen";
-    *dispname = "sine wave generator";
+    opts->sysname = "sinwavegen";
+    opts->dispname = "sine wave generator";
     return 0;
 }
 
-unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime)
+unsigned short dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
-    float *out = lapi->getportbuffer(outport, duration);
+    float *out = lapi->getportbuffer(outport, opts->duration);
     if (!out) return 0;
 
-    for (unsigned long i = 0; i < duration; i++)
+    for (unsigned long i = 0; i < opts->duration; i++)
     {
-        double time = (position + (unsigned long long)i) / (double)rate;
+        double time = (opts->position + (unsigned long long)i) / (double)opts->rate;
         out[i] = adjf(sin((freq * time + phase) * 2 * PI), ampmod) * volmod;
     }
 

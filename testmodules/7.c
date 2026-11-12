@@ -13,19 +13,19 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-const unsigned short dspmodule_requiredAPIversion = 3;
+const unsigned short dspmodule_requiredAPIversion = 4;
 
 static float ampmod = 0, volmod = 0.1;
 static void *infiledata, *outport;
 static size_t infilesize;
 static bool useu8 = false;
 
-unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
+unsigned short dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleStartupFunctionOptions * restrict opts)
 {
     char *infilepath = NULL;
     {
         int p;
-        while ((p = getopt(argc, argv, "a:v:f:u")) != -1)
+        while ((p = getopt(opts->argc, opts->argv, "a:v:f:u")) != -1)
         {
             switch (p)
             {
@@ -77,22 +77,22 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     fclose(f);
 
     lapi->log(DSPLogLevel_Info, "in file: \"%s\"\nampmod: %f\nvolmod: %f\nused 8-bit %ssigned PCM", infilepath, ampmod, volmod, useu8 ? "un" : "");
-    *sysname = "pcmfileplayer";
-    *dispname = "looped PCM (un)signed 8-bit mono file player";
+    opts->sysname = "pcmfileplayer";
+    opts->dispname = "looped PCM (un)signed 8-bit mono file player";
     return 0;
 }
 
-unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime)
+unsigned short dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
-    float *out = lapi->getportbuffer(outport, duration);
+    float *out = lapi->getportbuffer(outport, opts->duration);
     if (!out) return 0;
 
-    for (unsigned long i = 0; i < duration; i++)
+    for (unsigned long i = 0; i < opts->duration; i++)
     {
-        if (useu8) out[i] = adjf(((uint8_t *)infiledata)[(position + i) % infilesize] / (float)255, ampmod) * volmod;
+        if (useu8) out[i] = adjf(((uint8_t *)infiledata)[(opts->position + i) % infilesize] / (float)255, ampmod) * volmod;
         else
         {
-            register int8_t v = ((int8_t *)infiledata)[(position + i) % infilesize];
+            register int8_t v = ((int8_t *)infiledata)[(opts->position + i) % infilesize];
             out[i] = adjf(v > 0 ? v / (float)127 : v / (float)128, ampmod) * volmod;
         }
     }

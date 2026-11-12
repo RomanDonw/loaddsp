@@ -11,17 +11,17 @@
 #include <getopt.h>
 #include <stdlib.h>
 
-const unsigned short dspmodule_requiredAPIversion = 3;
+const unsigned short dspmodule_requiredAPIversion = 4;
 
 static unsigned short ioportpairs = 0;
 static float maxampcutvalue = 0;
 static void **inports = NULL, **outports = NULL;
 
-unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
+unsigned short dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleStartupFunctionOptions * restrict opts)
 {
     {
         int p;
-        while ((p = getopt(argc, argv, "a:p:")) != -1)
+        while ((p = getopt(opts->argc, opts->argv, "a:p:")) != -1)
         {
             switch (p)
             {
@@ -66,7 +66,7 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     }
 
     lapi->log(DSPLogLevel_Info, "I/O ports pairs: %hu\nmax amplitude value to cut: %f", ioportpairs, maxampcutvalue);
-    *sysname = "cut";
+    opts->sysname = "cut";
     return 0;
 
     errorquit_onorafterallocportarrays:
@@ -75,16 +75,16 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     return 1;
 }
 
-unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime)
+unsigned short dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
     for (unsigned short ch = 0; ch < ioportpairs; ch++)
     {
-        float *out = lapi->getportbuffer(outports[ch], duration);
+        float *out = lapi->getportbuffer(outports[ch], opts->duration);
         if (!out) continue;
-        const float *in = lapi->getportbuffer(inports[ch], duration);
-        if (!in) { memset(out, 0, sizeof(float) * duration); continue; }
+        const float *in = lapi->getportbuffer(inports[ch], opts->duration);
+        if (!in) { memset(out, 0, sizeof(float) * opts->duration); continue; }
 
-        for (unsigned long i = 0; i < duration; i++)
+        for (unsigned long i = 0; i < opts->duration; i++)
         {
             if (in[i] <= maxampcutvalue) out[i] = 0;
             else out[i] = in[i];

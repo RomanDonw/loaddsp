@@ -11,17 +11,17 @@
 #include <getopt.h>
 #include <stdbool.h>
 
-const unsigned short dspmodule_requiredAPIversion = 3;
+const unsigned short dspmodule_requiredAPIversion = 4;
 
 static unsigned short freq = 0;
 static float minvalue = -1, maxvalue = 1, volmod = 0.1;
 static void *outport = NULL;
 
-unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
+unsigned short dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleStartupFunctionOptions * restrict opts)
 {
     {
         int p;
-        while ((p = getopt(argc, argv, "f:m:M:v:")) != -1)
+        while ((p = getopt(opts->argc, opts->argv, "f:m:M:v:")) != -1)
         {
             switch (p)
             {
@@ -53,20 +53,20 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
     if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { lapi->log(DSPLogLevel_Fatal, "error adding output port"); return 1; }
 
     lapi->log(DSPLogLevel_Info, "frequency: %hu Hz\nmin value: %f\nmax value: %f\nvolmod: %f", freq, minvalue, maxvalue, volmod);
-    *sysname = "sqwavegen";
-    *dispname = "square wave generator";
+    opts->sysname = "sqwavegen";
+    opts->dispname = "square wave generator";
     return 0;
 }
 
-unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime)
+unsigned short dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
-    float *out = lapi->getportbuffer(outport, duration);
-    if (!(out && rate)) return 0;
+    float *out = lapi->getportbuffer(outport, opts->duration);
+    if (!(out && opts->rate)) return 0;
 
-    unsigned long long insecondpos = position % rate;
-    unsigned long long fragscount = rate / (2 * freq);
+    unsigned long long insecondpos = opts->position % opts->rate;
+    unsigned long long fragscount = opts->rate / (2 * freq);
 
-    for (unsigned long i = 0; i < duration; i++) out[i] = (((insecondpos + i) / fragscount) % 2 ? maxvalue : minvalue) * volmod;
+    for (unsigned long i = 0; i < opts->duration; i++) out[i] = (((insecondpos + i) / fragscount) % 2 ? maxvalue : minvalue) * volmod;
 
     return 0;
 }

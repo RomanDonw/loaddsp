@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-const unsigned short dspmodule_requiredAPIversion = 3;
+const unsigned short dspmodule_requiredAPIversion = 4;
 
 static unsigned short freq = 0;
 static float ampmod = 0, volmod = 0.5, lastsample;
@@ -21,11 +21,11 @@ static void *outport;
 
 static inline float rndf(void) { return (rand() / (float)RAND_MAX) * 2 - 1; }
 
-unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * const argv[], const char **sysname, const char **dispname)
+unsigned short dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleStartupFunctionOptions * restrict opts)
 {
     {
         int p;
-        while ((p = getopt(argc, argv, "f:v:a:")) != -1)
+        while ((p = getopt(opts->argc, opts->argv, "f:v:a:")) != -1)
         {
             switch (p)
             {
@@ -56,28 +56,28 @@ unsigned short dspmodule_startup(const DSPLoaderAPI *lapi, int argc, char * cons
 
     if (freq) lapi->log(DSPLogLevel_Info, "freq: %hu Hz\nampmod: %f\nvolmod: %f", freq, ampmod, volmod);
     else lapi->log(DSPLogLevel_Info, "freq: (relative to sample rate)\nampmod: %f\nvolmod: %f", ampmod, volmod);
-    *sysname = "noisegen";
-    *dispname = "noise generator";
+    opts->sysname = "noisegen";
+    opts->dispname = "noise generator";
     return 0;
 }
 
-unsigned short dspmodule_process(const DSPLoaderAPI *lapi, unsigned long long position, unsigned long duration, unsigned long rate, unsigned long long nsectime)
+unsigned short dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
-    float *out = lapi->getportbuffer(outport, duration);
-    if (!(out && rate)) return 0;
+    float *out = lapi->getportbuffer(outport, opts->duration);
+    if (!(out && opts->rate)) return 0;
 
     if (freq)
     {
-        unsigned long long halfrate = rate / 2;
-        unsigned long long fragscount = rate / (freq > halfrate ? halfrate : freq);
+        unsigned long long halfrate = opts->rate / 2;
+        unsigned long long fragscount = opts->rate / (freq > halfrate ? halfrate : freq);
 
-        for (unsigned long i = 0; i < duration; i++)
+        for (unsigned long i = 0; i < opts->duration; i++)
         {
-            if (!((position + i) % fragscount)) lastsample = adjf(rndf(), ampmod) * volmod;
+            if (!((opts->position + i) % fragscount)) lastsample = adjf(rndf(), ampmod) * volmod;
             out[i] = lastsample;
         }
     }
-    else for (unsigned long i = 0; i < duration; i++) out[i] = adjf(rndf(), ampmod) * volmod;
+    else for (unsigned long i = 0; i < opts->duration; i++) out[i] = adjf(rndf(), ampmod) * volmod;
 
     return 0;
 }
