@@ -67,6 +67,10 @@ int main(int argc, char *argv[])
                 case 'l':
                     switch (*optarg)
                     {
+                        case 'd':
+                            currloglevel = DSPLogLevel_Debug;
+                            break;
+
                         case 'i':
                             currloglevel = DSPLogLevel_Info;
                             break;
@@ -108,7 +112,7 @@ int main(int argc, char *argv[])
     {
         const unsigned short *modreqver = dlsym(module, "dspmodule_requiredAPIversion");
         if (!modreqver) { printf("dlsym(\"dspmodule_requiredAPIversion\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
-        
+
         if (*modreqver != 4)
         {
             printf("incompatible module version: supported only 4, current %hu\n", *modreqver);
@@ -121,7 +125,7 @@ int main(int argc, char *argv[])
 
     modfunc_process = dlsym(module, "dspmodule_process");
     if (!modfunc_process) { printf("dlsym(\"dspmodule_process\"): %s\n", dlerror()); goto errorquit_afteropenmodule; }
-    
+
     DSPModuleCleanupFunctionPrototype *modfunc_cleanup = dlsym(module, "dspmodule_cleanup");
     modfunc_chstate = dlsym(module, "dspmodule_statechanged");
 
@@ -186,7 +190,7 @@ int main(int argc, char *argv[])
         struct spa_dict propsdict = SPA_DICT_INIT(dictitems, 2);
         pw_filter_update_properties(filter, NULL, &propsdict);
     }
-    
+
     // ===============================================================
 
     if (pw_filter_connect(filter, 0, NULL, 0))
