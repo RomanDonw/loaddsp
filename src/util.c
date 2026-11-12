@@ -5,43 +5,51 @@
 #include <time.h>
 #include <string.h>
 
+#include <spa/utils/ansi.h>
+
 DSPLogLevel currloglevel = DSPLogLevel_Info;
 
 static void _log(const char *location, DSPLogLevel level, const char *format, va_list args)
 {
     if (level < currloglevel) return;
 
-    const char *levelstr;
+    const char *levelstr, *colorstr;
     switch (level)
     {
         case DSPLogLevel_Debug:
             levelstr = "DEBUG";
+            colorstr = SPA_ANSI_BRIGHT_MAGENTA;
             break;
         
         case DSPLogLevel_Info:
             levelstr = "INFO";
+            colorstr = SPA_ANSI_GREEN;
             break;
 
         case DSPLogLevel_Warning:
             levelstr = "WARN";
+            colorstr = SPA_ANSI_BRIGHT_YELLOW;
             break;
 
         case DSPLogLevel_Error:
             levelstr = "ERROR";
+            colorstr = SPA_ANSI_BRIGHT_RED;
             break;
 
         case DSPLogLevel_Fatal:
             levelstr = "FATAL";
+            colorstr = SPA_ANSI_DARK_RED;
             break;
 
         default:
             return;
     }
-    
+
     time_t now = time(NULL);
     char datebuff[9];
     strftime(datebuff, sizeof(datebuff), "%H:%M:%S", localtime(&now));
-    printf("[%s %s %-5s] ", datebuff, location, levelstr);
+    printf(SPA_ANSI_RESET SPA_ANSI_CYAN "[" SPA_ANSI_BRIGHT_BLACK "%s " SPA_ANSI_BRIGHT_WHITE "%s %s%-5s" SPA_ANSI_CYAN "] " SPA_ANSI_RESET,
+        datebuff, location, colorstr, levelstr);
 
     size_t count = 0;
     size_t formatsize = 1;
