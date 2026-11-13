@@ -6,6 +6,8 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON) # required for POSIX.1-2008 extension that required by PipeWire SPA.
 
+option(BUILD_EXAMPLES "Build example modules" OFFs)
+
 # =============================================
 
 include(GNUInstallDirs)
@@ -29,22 +31,7 @@ install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # =============================================
 
-macro(test name sourcefile)
-    add_library(${name} SHARED "${CMAKE_SOURCE_DIR}/testmodules/${sourcefile}")
-    target_include_directories(${name} PRIVATE "${CMAKE_SOURCE_DIR}/include")
-    set_target_properties(${name} PROPERTIES PREFIX "")
-endmacro()
-
-test(dspmod0 0.c)
-test(dspmod1 1.c)
-test(dspmod2 2.c)
-test(dspmod3 3.c)
-test(dspmod4 4.c)
-test(dspmod5 5.c)
-test(dspmod6 6.c)
-test(dspmod7 7.c)
-test(dspmod8 8.c)
-test(dspmod9 9.c)
-test(dspmod10 10.c)
-target_link_libraries(dspmod10 PRIVATE m)
-test(dspmod11 11.c)
+if(BUILD_EXAMPLES)
+    set(CMAKE_CURRENT_SOURCE_DIR "examples/")
+    include("examples/CMakeLists.txt")
+endif()
