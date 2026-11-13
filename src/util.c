@@ -20,7 +20,7 @@ static void _log(const char *location, DSPLogLevel level, const char *format, va
             levelstr = "DEBUG";
             colorstr = SPA_ANSI_BRIGHT_MAGENTA;
             break;
-        
+
         case DSPLogLevel_Info:
             levelstr = "INFO";
             colorstr = SPA_ANSI_GREEN;
@@ -38,7 +38,7 @@ static void _log(const char *location, DSPLogLevel level, const char *format, va
 
         case DSPLogLevel_Fatal:
             levelstr = "FATAL";
-            colorstr = SPA_ANSI_DARK_RED;
+            colorstr = SPA_ANSI_BOLD SPA_ANSI_DARK_RED;
             break;
 
         default:
@@ -48,20 +48,22 @@ static void _log(const char *location, DSPLogLevel level, const char *format, va
     time_t now = time(NULL);
     char datebuff[9];
     strftime(datebuff, sizeof(datebuff), "%H:%M:%S", localtime(&now));
-    printf(SPA_ANSI_RESET SPA_ANSI_CYAN "[" SPA_ANSI_BRIGHT_BLACK "%s " SPA_ANSI_BRIGHT_WHITE "%s %s%-5s" SPA_ANSI_CYAN "] " SPA_ANSI_RESET,
+    printf(SPA_ANSI_RESET SPA_ANSI_CYAN "[" SPA_ANSI_BRIGHT_BLACK "%s " SPA_ANSI_BOLD SPA_ANSI_BRIGHT_WHITE "%s " SPA_ANSI_RESET
+        "%s%-5s" SPA_ANSI_RESET SPA_ANSI_CYAN "] " SPA_ANSI_RESET,
         datebuff, location, colorstr, levelstr);
 
     size_t count = 0;
     size_t formatsize = 1;
     for (const char *s = format; *s; s++) { formatsize++; if (*s == '\n') count++; }
-    size_t fmtsize = formatsize + 24 * count;
+    static const char tabstr[] = "                      " SPA_ANSI_RESET SPA_ANSI_CYAN "| " SPA_ANSI_RESET;
+    size_t fmtsize = formatsize + (sizeof(tabstr) - 1) * count;
     char fmt[fmtsize];
     {
         size_t i = 0;
         for (const char *s = format; *s; s++)
         {
-            if (*s == '\n') { memcpy(fmt + i, "\n                      | ", 25); i += 25; }
-            else fmt[i++] = *s;
+            fmt[i++] = *s;
+            if (*s == '\n') { memcpy(fmt + i, tabstr, sizeof(tabstr) - 1); i += sizeof(tabstr) - 1; }
         }
         fmt[i] = '\0';
     }
