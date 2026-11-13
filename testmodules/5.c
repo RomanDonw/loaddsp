@@ -21,7 +21,7 @@ static void *outport;
 
 static inline float rndf(void) { return (rand() / (float)RAND_MAX) * 2 - 1; }
 
-unsigned short dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleStartupFunctionOptions * restrict opts)
+DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleStartupFunctionOptions * restrict opts)
 {
     {
         int p;
@@ -61,7 +61,7 @@ unsigned short dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleSt
     return 0;
 }
 
-unsigned short dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
+DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
     float *out = lapi->getportbuffer(outport, opts->duration);
     if (!(out && opts->rate)) return 0;

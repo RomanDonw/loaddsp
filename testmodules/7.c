@@ -20,7 +20,7 @@ static void *infiledata, *outport;
 static size_t infilesize;
 static bool useu8 = false;
 
-unsigned short dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleStartupFunctionOptions * restrict opts)
+DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleStartupFunctionOptions * restrict opts)
 {
     char *infilepath = NULL;
     {
@@ -82,7 +82,7 @@ unsigned short dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleSt
     return 0;
 }
 
-unsigned short dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
+DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
     float *out = lapi->getportbuffer(outport, opts->duration);
     if (!out) return 0;

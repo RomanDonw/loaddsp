@@ -16,7 +16,7 @@ const unsigned short dspmodule_requiredAPIversion = 4;
 static unsigned short outportscount = 0;
 static void *inport, **outports = NULL;
 
-unsigned short dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleStartupFunctionOptions * restrict opts)
+DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleStartupFunctionOptions * restrict opts)
 {
     {
         int p;
@@ -57,7 +57,7 @@ unsigned short dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleSt
     return 1;
 }
 
-unsigned short dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
+DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
     const float *in = lapi->getportbuffer(inport, opts->duration);
     for (unsigned short i = 0; i < outportscount; i++)

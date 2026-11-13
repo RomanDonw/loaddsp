@@ -17,7 +17,7 @@ static unsigned short freq = 0;
 static float minvalue = -1, maxvalue = 1, volmod = 0.1;
 static void *outport = NULL;
 
-unsigned short dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleStartupFunctionOptions * restrict opts)
+DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleStartupFunctionOptions * restrict opts)
 {
     {
         int p;
@@ -58,7 +58,7 @@ unsigned short dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPModuleSt
     return 0;
 }
 
-unsigned short dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
+DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
     float *out = lapi->getportbuffer(outport, opts->duration);
     if (!(out && opts->rate)) return 0;

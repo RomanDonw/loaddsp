@@ -82,10 +82,17 @@ struct DSPModuleProcessFunctionOptions
     unsigned long duration, rate;
 } typedef DSPModuleProcessFunctionOptions;
 
-typedef unsigned short DSPModuleStartupFunctionPrototype(const DSPLoaderAPI * restrict, DSPModuleStartupFunctionOptions * restrict);
-typedef unsigned short DSPModuleProcessFunctionPrototype(const DSPLoaderAPI * restrict, DSPModuleProcessFunctionOptions * restrict);
+enum DSPModuleReturnCode
+{
+    DSPModuleReturnCode_Continue = 0,
+    DSPModuleReturnCode_Quit_Success = 1, // success quit (indicates that quit raised not by runtime error).
+    DSPModuleReturnCode_Quit_Error = 2 // error quit (raised by runtime error).
+} typedef DSPModuleReturnCode;
+
+typedef DSPModuleReturnCode DSPModuleStartupFunctionPrototype(const DSPLoaderAPI * restrict, DSPModuleStartupFunctionOptions * restrict);
+typedef DSPModuleReturnCode DSPModuleProcessFunctionPrototype(const DSPLoaderAPI * restrict, DSPModuleProcessFunctionOptions * restrict);
 typedef void DSPModuleCleanupFunctionPrototype(void);
-typedef unsigned short DSPModuleStateChangedFunctionPrototype(const DSPLoaderAPI *, DSPState prevstate, DSPState currstate);
+typedef DSPModuleReturnCode DSPModuleStateChangedFunctionPrototype(const DSPLoaderAPI *, DSPState prevstate, DSPState currstate);
 
 DSPMODULE_API extern const unsigned short dspmodule_requiredAPIversion;
 // [dspmodule_startup]: 'dispname' is not required to be set.

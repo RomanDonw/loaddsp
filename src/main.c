@@ -158,11 +158,11 @@ int main(int argc, char *argv[])
             .argc = argc - optind,
             .argv = argv + optind,
         };
-        unsigned short ret = modfunc_startup(&lapi_generic, &opts);
-        if (ret)
+        DSPModuleReturnCode ret = modfunc_startup(&lapi_generic, &opts);
+        if (ret != DSPModuleReturnCode_Continue)
         {
             loader_log(DSPLogLevel_Fatal, "module internal initialization error");
-            exitcode = ret;
+            exitcode = ret == DSPModuleReturnCode_Quit_Success ? 0 : 1;
             goto errorquit_aftercreatefilter;
         }
 
@@ -231,8 +231,12 @@ static void procdsp(void *userdata, struct spa_io_position *position)
         .nsectime = position->clock.nsec
     };
 
-    unsigned short ret = modfunc_process(&lapi_rtsafe, &opts);
-    if (ret) { exitcode = ret; pw_main_loop_quit(mainloop); }
+    DSPModuleReturnCode ret = modfunc_process(&lapi_rtsafe, &opts);
+    if (ret != DSPModuleReturnCode_Continue)
+    {
+        exitcode = ret == DSPModuleReturnCode_Quit_Success ? 0 : 1;
+        pw_main_loop_quit(mainloop);
+    }
 }
 
 static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_state state, const char *error)
@@ -272,8 +276,12 @@ static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_stat
         (old == PW_FILTER_STATE_PAUSED || old == PW_FILTER_STATE_STREAMING) &&
         (state == PW_FILTER_STATE_PAUSED || state == PW_FILTER_STATE_STREAMING))
     {
-        unsigned short ret = modfunc_chstate(&lapi_generic, old == PW_FILTER_STATE_STREAMING ? DSPState_Streaming : DSPState_Paused,
+        DSPModuleReturnCode ret = modfunc_chstate(&lapi_generic, old == PW_FILTER_STATE_STREAMING ? DSPState_Streaming : DSPState_Paused,
             state == PW_FILTER_STATE_STREAMING ? DSPState_Streaming : DSPState_Paused);
-        if (ret) { exitcode = ret; pw_main_loop_quit(mainloop); }
+        if (ret != DSPModuleReturnCode_Continue)
+        {
+            exitcode = ret == DSPModuleReturnCode_Quit_Success ? 0 : 1;
+            pw_main_loop_quit(mainloop);
+        }
     }
 }
