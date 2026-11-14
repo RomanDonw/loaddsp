@@ -25,18 +25,18 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
             switch (p)
             {
                 case 'o':
-                    if (sscanf(optarg, "%hu", &outportscount) < 1) { lapi->log(DSPLogLevel_Fatal, "failed parsing option -o"); return DSPModuleReturnCode_Quit_Error; }
+                    if (sscanf(optarg, "%hu", &outportscount) < 1) { lapi->log(DSPLogLevel_Fatal, "failed parsing option -o"); return DSPModuleReturnCode_Stop; }
                     break;
             }
         }
     }
 
-    if (!outportscount) { lapi->log(DSPLogLevel_Fatal, "specify at least one output port through -o parameter"); return DSPModuleReturnCode_Quit_Error; }
+    if (!outportscount) { lapi->log(DSPLogLevel_Fatal, "specify at least one output port through -o parameter"); return DSPModuleReturnCode_Stop; }
 
     if (!(inport = lapi->addport("input", NULL, DSPPortDirection_Input, 0)))
-    { lapi->log(DSPLogLevel_Fatal, "error create input port"); return DSPModuleReturnCode_Quit_Error; }
+    { lapi->log(DSPLogLevel_Fatal, "error create input port"); return DSPModuleReturnCode_Stop; }
 
-    if (!(outports = malloc(outportscount * sizeof(void *)))) { lapi->log(DSPLogLevel_Fatal, "memory allocation failed"); return DSPModuleReturnCode_Quit_Error; }
+    if (!(outports = malloc(outportscount * sizeof(void *)))) { lapi->log(DSPLogLevel_Fatal, "memory allocation failed"); return DSPModuleReturnCode_Stop; }
 
     char namebuff[16];
     for (unsigned short i = 0; i < outportscount; i++)
@@ -54,7 +54,7 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
 
     errorquit_afteralloc:
         free(outports);
-    return DSPModuleReturnCode_Quit_Error;
+    return DSPModuleReturnCode_Stop;
 }
 
 DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)

@@ -32,10 +32,10 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
         }
     }
 
-    if (inportscount < 2) { lapi->log(DSPLogLevel_Fatal, "specify at least two in ports through -p parameter"); return DSPModuleReturnCode_Quit_Error; }
+    if (inportscount < 2) { lapi->log(DSPLogLevel_Fatal, "specify at least two in ports through -p parameter"); return DSPModuleReturnCode_Stop; }
 
     if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0)))
-    { lapi->log(DSPLogLevel_Fatal, "unable to create single output port"); return DSPModuleReturnCode_Quit_Error; }
+    { lapi->log(DSPLogLevel_Fatal, "unable to create single output port"); return DSPModuleReturnCode_Stop; }
 
     if (!(inports = malloc(inportscount * sizeof(void *))) || 
         !(inbuffers = malloc(inportscount * sizeof(float *))))
@@ -58,7 +58,7 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
     errorquit_freeinports:
         free(inbuffers);
         free(inports);
-    return DSPModuleReturnCode_Quit_Error;
+    return DSPModuleReturnCode_Stop;
 }
 
 DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)

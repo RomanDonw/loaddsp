@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
         if (ret != DSPModuleReturnCode_Continue)
         {
             loader_log(DSPLogLevel_Fatal, "module internal initialization error");
-            exitcode = ret == DSPModuleReturnCode_Quit_Success ? 0 : 1;
+            exitcode = ret == DSPModuleReturnCode_Quit ? 0 : 1;
             goto errorquit_aftercreatefilter;
         }
 
@@ -234,7 +234,7 @@ static void procdsp(void *userdata, struct spa_io_position *position)
     DSPModuleReturnCode ret = modfunc_process(&lapi_rtsafe, &opts);
     if (ret != DSPModuleReturnCode_Continue)
     {
-        exitcode = ret == DSPModuleReturnCode_Quit_Success ? 0 : 1;
+        exitcode = ret == DSPModuleReturnCode_Quit ? 0 : 1;
         pw_main_loop_quit(mainloop);
     }
 }
@@ -280,7 +280,7 @@ static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_stat
             state == PW_FILTER_STATE_STREAMING ? DSPState_Streaming : DSPState_Paused);
         if (ret != DSPModuleReturnCode_Continue)
         {
-            exitcode = ret == DSPModuleReturnCode_Quit_Success ? 0 : 1;
+            exitcode = ret == DSPModuleReturnCode_Quit ? 0 : 1;
             pw_main_loop_quit(mainloop);
         }
     }

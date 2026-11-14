@@ -48,13 +48,13 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
 
                 parseoptfail:
                     lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
-                return DSPModuleReturnCode_Quit_Error;
+                return DSPModuleReturnCode_Stop;
             }
         }
     }
 
-    if (!ioportpairs) { lapi->log(DSPLogLevel_Fatal, "specify at least one I/O ports pair through -p parameter"); return DSPModuleReturnCode_Quit_Error; }
-    if (!denom) { lapi->log(DSPLogLevel_Fatal, "denominator must be greater/not equal to 0"); return DSPModuleReturnCode_Quit_Error; }
+    if (!ioportpairs) { lapi->log(DSPLogLevel_Fatal, "specify at least one I/O ports pair through -p parameter"); return DSPModuleReturnCode_Stop; }
+    if (!denom) { lapi->log(DSPLogLevel_Fatal, "denominator must be greater/not equal to 0"); return DSPModuleReturnCode_Stop; }
 
     {
         register size_t portarrsize = ioportpairs * sizeof(void *);
@@ -88,7 +88,7 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
     errorquit_onorafterallocportarrays:
         free(outports);
         free(inports);
-    return DSPModuleReturnCode_Quit_Error;
+    return DSPModuleReturnCode_Stop;
 }
 
 DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)

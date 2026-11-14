@@ -85,8 +85,8 @@ struct DSPModuleProcessFunctionOptions
 enum DSPModuleReturnCode
 {
     DSPModuleReturnCode_Continue = 0,
-    DSPModuleReturnCode_Quit_Success = 1, // success quit (indicates that quit raised not by runtime error).
-    DSPModuleReturnCode_Quit_Error = 2 // error quit (raised by runtime error).
+    DSPModuleReturnCode_Quit = 1, // success quit (indicates that quit raised not by runtime error, e.g. reached EOF of playing file).
+    DSPModuleReturnCode_Stop = 2 // error quit (raised by runtime error).
 } typedef DSPModuleReturnCode;
 
 typedef DSPModuleReturnCode DSPModuleStartupFunctionPrototype(const DSPLoaderAPI * restrict, DSPModuleStartupFunctionOptions * restrict);

@@ -43,14 +43,14 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
 
                 parseoptfail:
                     lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
-                return DSPModuleReturnCode_Quit_Error;
+                return DSPModuleReturnCode_Stop;
             }
         }
     }
 
-    if (!freq || freq > 20000) { lapi->log(DSPLogLevel_Fatal, "frequency must be in range [1..20000]"); return DSPModuleReturnCode_Quit_Error; }
+    if (!freq || freq > 20000) { lapi->log(DSPLogLevel_Fatal, "frequency must be in range [1..20000]"); return DSPModuleReturnCode_Stop; }
 
-    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { lapi->log(DSPLogLevel_Fatal, "error adding output port"); return DSPModuleReturnCode_Quit_Error; }
+    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { lapi->log(DSPLogLevel_Fatal, "error adding output port"); return DSPModuleReturnCode_Stop; }
 
     lapi->log(DSPLogLevel_Info, "frequency: %hu Hz\nmin value: %f\nmax value: %f\nvolmod: %f", freq, minvalue, maxvalue, volmod);
     opts->sysname = "sqwavegen";

@@ -43,7 +43,7 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
 
                 parseoptfail:
                     lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
-                return DSPModuleReturnCode_Quit_Error;
+                return DSPModuleReturnCode_Stop;
             }
         }
     }
@@ -52,7 +52,7 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
     if (freq) lastsample = adjf(rndf(), ampmod) * volmod;
 
     if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0)))
-    { lapi->log(DSPLogLevel_Fatal, "error creating output port"); return DSPModuleReturnCode_Quit_Error; }
+    { lapi->log(DSPLogLevel_Fatal, "error creating output port"); return DSPModuleReturnCode_Stop; }
 
     if (freq) lapi->log(DSPLogLevel_Info, "freq: %hu Hz\nampmod: %f\nvolmod: %f", freq, ampmod, volmod);
     else lapi->log(DSPLogLevel_Info, "freq: (relative to sample rate)\nampmod: %f\nvolmod: %f", ampmod, volmod);

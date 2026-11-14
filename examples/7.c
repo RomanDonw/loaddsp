@@ -47,31 +47,31 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
 
                 parseoptfail:
                     lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
-                return DSPModuleReturnCode_Quit_Error;
+                return DSPModuleReturnCode_Stop;
             }
         }
     }
 
-    if (!infilepath) { lapi->log(DSPLogLevel_Fatal, "specify source audio file through -f parameter"); return DSPModuleReturnCode_Quit_Error; }
+    if (!infilepath) { lapi->log(DSPLogLevel_Fatal, "specify source audio file through -f parameter"); return DSPModuleReturnCode_Stop; }
 
-    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { lapi->log(DSPLogLevel_Fatal, "error creating output port"); return DSPModuleReturnCode_Quit_Error; }
+    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { lapi->log(DSPLogLevel_Fatal, "error creating output port"); return DSPModuleReturnCode_Stop; }
 
     FILE *f = fopen(infilepath, "rb");
-    if (!f) { lapi->log(DSPLogLevel_Fatal, "unable to open specified file"); return DSPModuleReturnCode_Quit_Error; }
+    if (!f) { lapi->log(DSPLogLevel_Fatal, "unable to open specified file"); return DSPModuleReturnCode_Stop; }
 
     fseek(f, 0, SEEK_END);
     infilesize = ftell(f);
     fseek(f, 0, SEEK_SET);
 
     infiledata = malloc(infilesize);
-    if (!infiledata) { lapi->log(DSPLogLevel_Fatal, "memory allocation failed"); fclose(f); return DSPModuleReturnCode_Quit_Error; }
+    if (!infiledata) { lapi->log(DSPLogLevel_Fatal, "memory allocation failed"); fclose(f); return DSPModuleReturnCode_Stop; }
 
     if (fread(infiledata, 1, infilesize, f) < infilesize || ferror(f))
     {
         lapi->log(DSPLogLevel_Fatal, "failed reading file");
         free(infiledata);
         fclose(f);
-        return DSPModuleReturnCode_Quit_Error;
+        return DSPModuleReturnCode_Stop;
     }
 
     fclose(f);

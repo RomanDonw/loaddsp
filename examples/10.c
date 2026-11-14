@@ -45,13 +45,13 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
 
                 parseoptfail:
                     lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
-                return DSPModuleReturnCode_Quit_Error;
+                return DSPModuleReturnCode_Stop;
             }
         }
     }
 
     if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0)))
-    { lapi->log(DSPLogLevel_Fatal, "error adding output port"); return DSPModuleReturnCode_Quit_Error; }
+    { lapi->log(DSPLogLevel_Fatal, "error adding output port"); return DSPModuleReturnCode_Stop; }
 
     lapi->log(DSPLogLevel_Info, "frequency: %f Hz\nphase: %f seconds\nampmod: %f\nvolmod: %f", freq, phase, ampmod, volmod);
     opts->sysname = "sinwavegen";
