@@ -161,7 +161,6 @@ int main(int argc, char *argv[])
         DSPModuleReturnCode ret = modfunc_startup(&lapi_generic, &opts);
         if (ret != DSPModuleReturnCode_Continue)
         {
-            loader_log(DSPLogLevel_Fatal, "module internal initialization error");
             exitcode = ret == DSPModuleReturnCode_Quit ? 0 : 1;
             goto errorquit_aftercreatefilter;
         }
