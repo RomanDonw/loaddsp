@@ -43,30 +43,30 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
 
                 parseoptfail:
                     lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
-                return 1;
+                return DSPModuleReturnCode_Quit_Error;
             }
         }
     }
 
-    if (!freq || freq > 20000) { lapi->log(DSPLogLevel_Fatal, "frequency must be in range [1..20000]"); return 1; }
+    if (!freq || freq > 20000) { lapi->log(DSPLogLevel_Fatal, "frequency must be in range [1..20000]"); return DSPModuleReturnCode_Quit_Error; }
 
-    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { lapi->log(DSPLogLevel_Fatal, "error adding output port"); return 1; }
+    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { lapi->log(DSPLogLevel_Fatal, "error adding output port"); return DSPModuleReturnCode_Quit_Error; }
 
     lapi->log(DSPLogLevel_Info, "frequency: %hu Hz\nmin value: %f\nmax value: %f\nvolmod: %f", freq, minvalue, maxvalue, volmod);
     opts->sysname = "sqwavegen";
     opts->dispname = "square wave generator";
-    return 0;
+    return DSPModuleReturnCode_Continue;
 }
 
 DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
     float *out = lapi->getportbuffer(outport, opts->duration);
-    if (!(out && opts->rate)) return 0;
+    if (!(out && opts->rate)) return DSPModuleReturnCode_Continue;
 
     unsigned long long insecondpos = opts->position % opts->rate;
     unsigned long long fragscount = opts->rate / (2 * freq);
 
     for (unsigned long i = 0; i < opts->duration; i++) out[i] = (((insecondpos + i) / fragscount) % 2 ? maxvalue : minvalue) * volmod;
 
-    return 0;
+    return DSPModuleReturnCode_Continue;
 }

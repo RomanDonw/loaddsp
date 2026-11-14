@@ -25,18 +25,18 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
             switch (p)
             {
                 case 'o':
-                    if (sscanf(optarg, "%hu", &outportscount) < 1) { lapi->log(DSPLogLevel_Fatal, "failed parsing option -o"); return 1; }
+                    if (sscanf(optarg, "%hu", &outportscount) < 1) { lapi->log(DSPLogLevel_Fatal, "failed parsing option -o"); return DSPModuleReturnCode_Quit_Error; }
                     break;
             }
         }
     }
 
-    if (!outportscount) { lapi->log(DSPLogLevel_Fatal, "specify at least one output port through -o parameter"); return 1; }
+    if (!outportscount) { lapi->log(DSPLogLevel_Fatal, "specify at least one output port through -o parameter"); return DSPModuleReturnCode_Quit_Error; }
 
     if (!(inport = lapi->addport("input", NULL, DSPPortDirection_Input, 0)))
-    { lapi->log(DSPLogLevel_Fatal, "error create input port"); return 1; }
+    { lapi->log(DSPLogLevel_Fatal, "error create input port"); return DSPModuleReturnCode_Quit_Error; }
 
-    if (!(outports = malloc(outportscount * sizeof(void *)))) { lapi->log(DSPLogLevel_Fatal, "memory allocation failed"); return 1; }
+    if (!(outports = malloc(outportscount * sizeof(void *)))) { lapi->log(DSPLogLevel_Fatal, "memory allocation failed"); return DSPModuleReturnCode_Quit_Error; }
 
     char namebuff[16];
     for (unsigned short i = 0; i < outportscount; i++)
@@ -50,11 +50,11 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
 
     lapi->log(DSPLogLevel_Info, "Output ports: %hu", outportscount);
     opts->sysname = "multitarget";
-    return 0;
+    return DSPModuleReturnCode_Continue;
 
     errorquit_afteralloc:
         free(outports);
-    return 1;
+    return DSPModuleReturnCode_Quit_Error;
 }
 
 DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
@@ -69,7 +69,7 @@ DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPMod
         memcpy(out, in, sizeof(float) * opts->duration);
     }
 
-    return 0;
+    return DSPModuleReturnCode_Continue;
 }
 
 void dspmodule_cleanup(void)

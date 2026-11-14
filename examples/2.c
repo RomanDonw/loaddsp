@@ -35,12 +35,12 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
 
                 parseoptfail:
                     lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
-                return 1;
+                return DSPModuleReturnCode_Quit_Error;
             }
         }
     }
 
-    if (!ioportpairs) { lapi->log(DSPLogLevel_Fatal, "specify at least one I/O ports pair through -p parameter"); return 1; }
+    if (!ioportpairs) { lapi->log(DSPLogLevel_Fatal, "specify at least one I/O ports pair through -p parameter"); return DSPModuleReturnCode_Quit_Error; }
 
     {
         size_t portarrsize = ioportpairs * sizeof(void *);
@@ -67,12 +67,12 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
 
     lapi->log(DSPLogLevel_Info, "I/O ports pairs: %hu\nmax amplitude value to cut: %f", ioportpairs, maxampcutvalue);
     opts->sysname = "cut";
-    return 0;
+    return DSPModuleReturnCode_Continue;
 
     errorquit_onorafterallocportarrays:
         free(outports);
         free(inports);
-    return 1;
+    return DSPModuleReturnCode_Quit_Error;
 }
 
 DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
@@ -91,7 +91,7 @@ DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPMod
         }
     }
 
-    return 0;
+    return DSPModuleReturnCode_Continue;
 }
 
 void dspmodule_cleanup(void)

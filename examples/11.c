@@ -32,10 +32,10 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
         }
     }
 
-    if (inportscount < 2) { lapi->log(DSPLogLevel_Fatal, "specify at least two in ports through -p parameter"); return 1; }
+    if (inportscount < 2) { lapi->log(DSPLogLevel_Fatal, "specify at least two in ports through -p parameter"); return DSPModuleReturnCode_Quit_Error; }
 
     if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0)))
-    { lapi->log(DSPLogLevel_Fatal, "unable to create single output port"); return 1; }
+    { lapi->log(DSPLogLevel_Fatal, "unable to create single output port"); return DSPModuleReturnCode_Quit_Error; }
 
     if (!(inports = malloc(inportscount * sizeof(void *))) || 
         !(inbuffers = malloc(inportscount * sizeof(float *))))
@@ -53,18 +53,18 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
     lapi->log(DSPLogLevel_Info, "inportscount: %hu", inportscount);
     opts->sysname = "monomixer";
     opts->dispname = "mono mixer";
-    return 0;
+    return DSPModuleReturnCode_Continue;
 
     errorquit_freeinports:
         free(inbuffers);
         free(inports);
-    return 1;
+    return DSPModuleReturnCode_Quit_Error;
 }
 
 DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
     float *out = lapi->getportbuffer(outport, opts->duration);
-    if (!out) return 0;
+    if (!out) return DSPModuleReturnCode_Continue;
 
     unsigned short realcount = 0;
     for (unsigned short i = 0; i < inportscount; i++)
@@ -72,7 +72,7 @@ DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPMod
         float *buff = lapi->getportbuffer(inports[i], opts->duration);
         if (buff) inbuffers[realcount++] = buff;
     }
-    if (!realcount) { memset(out, 0, opts->duration * sizeof(float)); return 0; }
+    if (!realcount) { memset(out, 0, opts->duration * sizeof(float)); return DSPModuleReturnCode_Continue; }
 
     for (unsigned long i = 0; i < opts->duration; i++)
     {
@@ -81,7 +81,7 @@ DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPMod
         out[i] = v / (float)realcount;
     }
 
-    return 0;
+    return DSPModuleReturnCode_Continue;
 }
 
 void dspmodule_cleanup(void)

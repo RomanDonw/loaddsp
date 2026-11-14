@@ -43,7 +43,7 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
 
                 parseoptfail:
                     lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
-                return 1;
+                return DSPModuleReturnCode_Quit_Error;
             }
         }
     }
@@ -52,19 +52,19 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
     if (freq) lastsample = adjf(rndf(), ampmod) * volmod;
 
     if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0)))
-    { lapi->log(DSPLogLevel_Fatal, "error creating output port"); return 1; }
+    { lapi->log(DSPLogLevel_Fatal, "error creating output port"); return DSPModuleReturnCode_Quit_Error; }
 
     if (freq) lapi->log(DSPLogLevel_Info, "freq: %hu Hz\nampmod: %f\nvolmod: %f", freq, ampmod, volmod);
     else lapi->log(DSPLogLevel_Info, "freq: (relative to sample rate)\nampmod: %f\nvolmod: %f", ampmod, volmod);
     opts->sysname = "noisegen";
     opts->dispname = "noise generator";
-    return 0;
+    return DSPModuleReturnCode_Continue;
 }
 
 DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
     float *out = lapi->getportbuffer(outport, opts->duration);
-    if (!(out && opts->rate)) return 0;
+    if (!(out && opts->rate)) return DSPModuleReturnCode_Continue;
 
     if (freq)
     {
@@ -79,5 +79,5 @@ DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPMod
     }
     else for (unsigned long i = 0; i < opts->duration; i++) out[i] = adjf(rndf(), ampmod) * volmod;
 
-    return 0;
+    return DSPModuleReturnCode_Continue;
 }

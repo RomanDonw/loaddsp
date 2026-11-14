@@ -48,13 +48,13 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
 
                 parseoptfail:
                     lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
-                return 1;
+                return DSPModuleReturnCode_Quit_Error;
             }
         }
     }
 
-    if (!ioportpairs) { lapi->log(DSPLogLevel_Fatal, "specify at least one I/O ports pair through -p parameter"); return 1; }
-    if (!denom) { lapi->log(DSPLogLevel_Fatal, "denominator must be greater/not equal to 0"); return 1; }
+    if (!ioportpairs) { lapi->log(DSPLogLevel_Fatal, "specify at least one I/O ports pair through -p parameter"); return DSPModuleReturnCode_Quit_Error; }
+    if (!denom) { lapi->log(DSPLogLevel_Fatal, "denominator must be greater/not equal to 0"); return DSPModuleReturnCode_Quit_Error; }
 
     {
         register size_t portarrsize = ioportpairs * sizeof(void *);
@@ -83,12 +83,12 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
         ioportpairs, amplitudemodifier, volumemodifier, placeholdervalue, denom);
     opts->sysname = "nsamplesaves";
     opts->dispname = "n-sample saver"; // idk how correct name it.
-    return 0;
+    return DSPModuleReturnCode_Continue;
 
     errorquit_onorafterallocportarrays:
         free(outports);
         free(inports);
-    return 1;
+    return DSPModuleReturnCode_Quit_Error;
 }
 
 DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
@@ -104,7 +104,7 @@ DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPMod
             out[i] = adjf((opts->position + i) % denom ? placeholdervalue : in[i], amplitudemodifier) * volumemodifier;
     }
 
-    return 0;
+    return DSPModuleReturnCode_Continue;
 }
 
 void dspmodule_cleanup(void)

@@ -45,24 +45,24 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
 
                 parseoptfail:
                     lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
-                return 1;
+                return DSPModuleReturnCode_Quit_Error;
             }
         }
     }
 
     if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0)))
-    { lapi->log(DSPLogLevel_Fatal, "error adding output port"); return 1; }
+    { lapi->log(DSPLogLevel_Fatal, "error adding output port"); return DSPModuleReturnCode_Quit_Error; }
 
     lapi->log(DSPLogLevel_Info, "frequency: %f Hz\nphase: %f seconds\nampmod: %f\nvolmod: %f", freq, phase, ampmod, volmod);
     opts->sysname = "sinwavegen";
     opts->dispname = "sine wave generator";
-    return 0;
+    return DSPModuleReturnCode_Continue;
 }
 
 DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
     float *out = lapi->getportbuffer(outport, opts->duration);
-    if (!out) return 0;
+    if (!out) return DSPModuleReturnCode_Continue;
 
     for (unsigned long i = 0; i < opts->duration; i++)
     {
@@ -70,5 +70,5 @@ DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPMod
         out[i] = adjf(sin((freq * time + phase) * 2 * PI), ampmod) * volmod;
     }
 
-    return 0;
+    return DSPModuleReturnCode_Continue;
 }

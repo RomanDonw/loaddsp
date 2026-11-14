@@ -47,31 +47,31 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
 
                 parseoptfail:
                     lapi->log(DSPLogLevel_Fatal, "failed parsing option -%c", (char)p);
-                return 1;
+                return DSPModuleReturnCode_Quit_Error;
             }
         }
     }
 
-    if (!infilepath) { lapi->log(DSPLogLevel_Fatal, "specify source audio file through -f parameter"); return 1; }
+    if (!infilepath) { lapi->log(DSPLogLevel_Fatal, "specify source audio file through -f parameter"); return DSPModuleReturnCode_Quit_Error; }
 
-    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { lapi->log(DSPLogLevel_Fatal, "error creating output port"); return 1; }
+    if (!(outport = lapi->addport("output", NULL, DSPPortDirection_Output, 0))) { lapi->log(DSPLogLevel_Fatal, "error creating output port"); return DSPModuleReturnCode_Quit_Error; }
 
     FILE *f = fopen(infilepath, "rb");
-    if (!f) { lapi->log(DSPLogLevel_Fatal, "unable to open specified file"); return 1; }
+    if (!f) { lapi->log(DSPLogLevel_Fatal, "unable to open specified file"); return DSPModuleReturnCode_Quit_Error; }
 
     fseek(f, 0, SEEK_END);
     infilesize = ftell(f);
     fseek(f, 0, SEEK_SET);
 
     infiledata = malloc(infilesize);
-    if (!infiledata) { lapi->log(DSPLogLevel_Fatal, "memory allocation failed"); fclose(f); return 1; }
+    if (!infiledata) { lapi->log(DSPLogLevel_Fatal, "memory allocation failed"); fclose(f); return DSPModuleReturnCode_Quit_Error; }
 
     if (fread(infiledata, 1, infilesize, f) < infilesize || ferror(f))
     {
         lapi->log(DSPLogLevel_Fatal, "failed reading file");
         free(infiledata);
         fclose(f);
-        return 1;
+        return DSPModuleReturnCode_Quit_Error;
     }
 
     fclose(f);
@@ -79,13 +79,13 @@ DSPModuleReturnCode dspmodule_startup(const DSPLoaderAPI * restrict lapi, DSPMod
     lapi->log(DSPLogLevel_Info, "in file: \"%s\"\nampmod: %f\nvolmod: %f\nused 8-bit %ssigned PCM", infilepath, ampmod, volmod, useu8 ? "un" : "");
     opts->sysname = "pcmfileplayer";
     opts->dispname = "looped PCM (un)signed 8-bit mono file player";
-    return 0;
+    return DSPModuleReturnCode_Continue;
 }
 
 DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPModuleProcessFunctionOptions * restrict opts)
 {
     float *out = lapi->getportbuffer(outport, opts->duration);
-    if (!out) return 0;
+    if (!out) return DSPModuleReturnCode_Continue;
 
     for (unsigned long i = 0; i < opts->duration; i++)
     {
@@ -96,7 +96,7 @@ DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPMod
             out[i] = adjf(v > 0 ? v / (float)127 : v / (float)128, ampmod) * volmod;
         }
     }
-    return 0;
+    return DSPModuleReturnCode_Continue;
 }
 
 void dspmodule_cleanup(void)
