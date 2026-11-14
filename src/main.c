@@ -107,7 +107,16 @@ int main(int argc, char *argv[])
 
     // ===============================================================
 
-    void *module = dlmopen(LM_ID_NEWLM, argv[optind], RTLD_NOW);
+    void *module =
+    #ifdef LOADDSP_USEGLIBCDLMOPEN
+        dlmopen(LM_ID_NEWLM, argv[optind], RTLD_NOW);
+    #else
+        dlopen(argv[optind], RTLD_NOW);
+        #pragma message "Attention: not recommended to use pure 'dlopen' function becuse it doesn't creates new separated symbol" \
+            "space for loadable library. This can cause merging static variables in functions that used both in module and loader" \
+            ", for example, standard POSIX 'getopt' or 'getopt_long'. Beware with use this standard function, it can cause undefined" \
+            "behaviour or segmentation faults."
+    #endif
     if (!module) { printf("dlopen(): %s\n", dlerror()); return -1; }
 
     {

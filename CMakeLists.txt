@@ -6,6 +6,7 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON) # required for POSIX.1-2008 extension that required by PipeWire SPA.
 
+option(USE_GLIBC_DLMOPEN "Use safe glibc 'dlmopen' function" ON)
 option(BUILD_EXAMPLES "Build example modules" OFF)
 
 # =============================================
@@ -20,6 +21,7 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 unset(SOURCES)
 
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/include")
+target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<BOOL:${USE_GLIBC_DLMOPEN}>:LOADDSP_USEGLIBCDLMOPEN>)
 
 pkg_check_modules(PipeWire REQUIRED IMPORTED_TARGET libpipewire-0.3)
 target_link_libraries(${PROJECT_NAME} PRIVATE PkgConfig::PipeWire)
