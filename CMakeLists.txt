@@ -6,7 +6,7 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON) # required for POSIX.1-2008 extension that required by PipeWire SPA.
 
-option(BUILD_EXAMPLES "Build example modules" OFFs)
+option(BUILD_EXAMPLES "Build example modules" OFF)
 
 # =============================================
 
