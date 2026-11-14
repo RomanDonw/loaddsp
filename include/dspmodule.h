@@ -58,6 +58,11 @@ struct DSPLoaderAPI
     DSPLoaderAPILogFunctionPrototype *log;
 } typedef DSPLoaderAPI;
 
+struct DSPModuleCallbacksUserDataPointers
+{
+    void *process, *cleanup, *statechanged;
+} typedef DSPModuleCallbacksUserDataPointers;
+
 struct DSPModuleStartupFunctionOptions
 {
     /* === IN === */
@@ -74,13 +79,27 @@ struct DSPModuleStartupFunctionOptions
     // Optional:
     unsigned long forcerate;
     unsigned long forcequantum;
+
+    DSPModuleCallbacksUserDataPointers userdata;
 } typedef DSPModuleStartupFunctionOptions;
 
 struct DSPModuleProcessFunctionOptions
 {
+    void *userdata;
     unsigned long long position, nsectime;
     unsigned long duration, rate;
 } typedef DSPModuleProcessFunctionOptions;
+
+struct DSPModuleCleanupFunctionOptions
+{
+    void *userdata;
+} typedef DSPModuleCleanupFunctionOptions;
+
+struct DSPModuleStateChangedFunctionOptions
+{
+    void *userdata;
+    DSPState prevstate, currstate;
+} typedef DSPModuleStateChangedFunctionOptions;
 
 enum DSPModuleReturnCode
 {
@@ -91,8 +110,8 @@ enum DSPModuleReturnCode
 
 typedef DSPModuleReturnCode DSPModuleStartupFunctionPrototype(const DSPLoaderAPI * restrict, DSPModuleStartupFunctionOptions * restrict);
 typedef DSPModuleReturnCode DSPModuleProcessFunctionPrototype(const DSPLoaderAPI * restrict, DSPModuleProcessFunctionOptions * restrict);
-typedef void DSPModuleCleanupFunctionPrototype(void);
-typedef DSPModuleReturnCode DSPModuleStateChangedFunctionPrototype(const DSPLoaderAPI *, DSPState prevstate, DSPState currstate);
+typedef void DSPModuleCleanupFunctionPrototype(DSPModuleCleanupFunctionOptions * restrict);
+typedef DSPModuleReturnCode DSPModuleStateChangedFunctionPrototype(const DSPLoaderAPI * restrict, DSPModuleStateChangedFunctionOptions * restrict);
 
 DSPMODULE_API extern const unsigned short dspmodule_requiredAPIversion;
 // [dspmodule_startup]: 'dispname' is not required to be set.

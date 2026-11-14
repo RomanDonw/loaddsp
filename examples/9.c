@@ -95,7 +95,7 @@ DSPModuleReturnCode dspmodule_process(const DSPLoaderAPI * restrict lapi, DSPMod
     return DSPModuleReturnCode_Continue;
 }
 
-void dspmodule_cleanup(void)
+void dspmodule_cleanup(DSPModuleCleanupFunctionOptions * restrict opts)
 {
     free(outports);
     free(inports);

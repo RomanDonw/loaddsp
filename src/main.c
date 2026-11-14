@@ -47,6 +47,7 @@ static void quitsignal(void *userdata, int signum)
 
 static int exitcode = -1;
 static bool logstate = true;
+static DSPModuleCallbacksUserDataPointers userdataptrs;
 
 int main(int argc, char *argv[])
 {
@@ -164,6 +165,7 @@ int main(int argc, char *argv[])
             exitcode = ret == DSPModuleReturnCode_Quit ? 0 : 1;
             goto errorquit_aftercreatefilter;
         }
+        userdataptrs = opts.userdata;
 
         char forceratestr[11];
         if (snprintf(forceratestr, sizeof(forceratestr), "%lu", opts.forcerate) < 0)
@@ -199,7 +201,14 @@ int main(int argc, char *argv[])
     pw_main_loop_run(mainloop);
 
     errorquit_aftermodulestartup:
-        if (modfunc_cleanup) modfunc_cleanup();
+        if (modfunc_cleanup)
+        {
+            DSPModuleCleanupFunctionOptions opts =
+            {
+                .userdata = userdataptrs.cleanup
+            };
+            modfunc_cleanup(&opts);
+        }
     errorquit_aftercreatefilter:
         pw_filter_destroy(filter);
     errorquit_aftercreatemainloop:
@@ -227,7 +236,8 @@ static void procdsp(void *userdata, struct spa_io_position *position)
         .position = position->clock.position,
         .duration = duration,
         .rate = position->clock.rate.denom,
-        .nsectime = position->clock.nsec
+        .nsectime = position->clock.nsec,
+        .userdata = userdataptrs.process
     };
 
     DSPModuleReturnCode ret = modfunc_process(&lapi_rtsafe, &opts);
@@ -275,8 +285,13 @@ static void chstatedsp(void *data, enum pw_filter_state old, enum pw_filter_stat
         (old == PW_FILTER_STATE_PAUSED || old == PW_FILTER_STATE_STREAMING) &&
         (state == PW_FILTER_STATE_PAUSED || state == PW_FILTER_STATE_STREAMING))
     {
-        DSPModuleReturnCode ret = modfunc_chstate(&lapi_generic, old == PW_FILTER_STATE_STREAMING ? DSPState_Streaming : DSPState_Paused,
-            state == PW_FILTER_STATE_STREAMING ? DSPState_Streaming : DSPState_Paused);
+        DSPModuleStateChangedFunctionOptions opts =
+        {
+            .userdata = userdataptrs.statechanged,
+            .prevstate = old == PW_FILTER_STATE_STREAMING ? DSPState_Streaming : DSPState_Paused,
+            .currstate = state == PW_FILTER_STATE_STREAMING ? DSPState_Streaming : DSPState_Paused
+        };
+        DSPModuleReturnCode ret = modfunc_chstate(&lapi_generic, &opts);
         if (ret != DSPModuleReturnCode_Continue)
         {
             exitcode = ret == DSPModuleReturnCode_Quit ? 0 : 1;
