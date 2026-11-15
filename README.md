@@ -13,6 +13,7 @@ Simple loader of my own DSP-modules (PipeWire filters) with my own format.
 ## Building
 ### CMake options
 - `BUILD_EXAMPLES` (disabled by default) - enable building example modules (they can be also used as full-fledged, but simple DSP modules).
+- `BUILD_TESTS` (enabled by default) - build test modules.
 - `USE_GLIBC_DLMOPEN` (enabled by default) - use safety `dlmopen` from `glibc` for separated "symbol space" instead of POSIX `dlopen`.
 
 ## Usage

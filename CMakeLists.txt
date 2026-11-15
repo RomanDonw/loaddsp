@@ -8,6 +8,7 @@ set(CMAKE_C_EXTENSIONS ON) # required for POSIX.1-2008 extension that required b
 
 option(USE_GLIBC_DLMOPEN "Use safe glibc 'dlmopen' function" ON)
 option(BUILD_EXAMPLES "Build example modules" OFF)
+option(BUILD_TESTS "Build test modules" ON)
 
 # =============================================
 
@@ -33,7 +34,18 @@ install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # =============================================
 
+macro(mod name sourcefile)
+    add_library(${name} SHARED "${CMAKE_CURRENT_SOURCE_DIR}/${sourcefile}")
+    target_include_directories(${name} PRIVATE "${CMAKE_SOURCE_DIR}/include")
+    set_target_properties(${name} PROPERTIES PREFIX "")
+endmacro()
+
 if(BUILD_EXAMPLES)
     set(CMAKE_CURRENT_SOURCE_DIR "examples/")
     include("examples/CMakeLists.txt")
+endif()
+
+if(BUILD_TESTS)
+    set(CMAKE_CURRENT_SOURCE_DIR "tests/")
+    include("tests/CMakeLists.txt")
 endif()
