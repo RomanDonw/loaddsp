@@ -4,13 +4,16 @@
 Simple loader of my own DSP-modules (PipeWire filters) with my own format.
 
 ## Dependencies
+### Required
 - CMake
 - Pipewire
+### Opitonal (but highly recommended)
 - glibc (for `dlmopen`)
 
 ## Building
-Just configure `/build/` folder through CMake as you want. Also here's supported some CMake options when setting up building environment:
+### CMake options
 - `BUILD_EXAMPLES` (disabled by default) - enable building example modules (they can be also used as full-fledged, but simple DSP modules).
+- `USE_GLIBC_DLMOPEN` (enabled by default) - use safety `dlmopen` from `glibc` for separated "symbol space" instead of POSIX `dlopen`.
 
 ## Usage
 ```
