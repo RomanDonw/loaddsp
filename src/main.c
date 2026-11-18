@@ -52,8 +52,14 @@ static DSPModuleCallbacksUserDataPointers userdataptrs;
 int main(int argc, char *argv[])
 {
     {
+        static const struct option longopts[] =
+        {
+            { .name = "help", .has_arg = no_argument, .val = 256, .flag = NULL },
+            {0}
+        };
+
         int p;
-        while ((p = getopt(argc, argv, "-ql:")) != -1)
+        while ((p = getopt_long(argc, argv, "-ql:", longopts, NULL)) != -1)
         {
             switch (p)
             {
@@ -93,6 +99,15 @@ int main(int argc, char *argv[])
                             return 1;
                     }
                     break;
+
+                case 256:
+                    printf("Usage: %s [LOADER OPTIONS]... MODULE [MODULE ADDITIONAL ARGUMENTS]...\n\nLoader options: \n"
+                        "  -q\n\tdisable some notifications, like message when module state in graph was changed\n\n"
+                        "  -l [MINIMAL LOG LEVEL]\n\tset minimal logging level. allowed values:\n"
+                        "\t\td - debug\n\t\ti - info\n\t\tw - warning\n\t\te - error\n\t\tf - fatal\n\n"
+                        "  --help\n\tdisplay this help and exit\n",
+                        argv[0]);
+                    return 0;
             }
         }
     }
@@ -100,8 +115,7 @@ int main(int argc, char *argv[])
 
     if (optind >= argc)
     {
-        printf("Too few arguments. Basic command line arguments scheme: \n"
-            "\t%s [optional loader parametres] <path to DSP .so module> [additional args for module].\n", argv[0]);
+        puts("Missed module path.\nUse --help option to get additional information.");
         return -1;
     }
 
